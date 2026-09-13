@@ -1,0 +1,66 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Build and Lean smoke tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      CI: 'true'
+      NEXT_TELEMETRY_DISABLED: '1'
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install application dependencies
+        run: npm ci
+      - name: Cache pinned Lean toolchain
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: .cache/lean
+          key: lean-wasm-${{ runner.os }}-${{ hashFiles('runtime/release.json') }}
+      - name: TypeScript
+        run: npm run typecheck
+      - name: Lint
+        run: npm run lint
+      - name: Unit tests and workspace migration
+        run: npm test
+      - name: Cache native Lean
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: ~/.elan
+          key: native-lean-${{ runner.os }}-4.33.1-elan4.1.2
+      - name: Install native Lean 4.33.1
+        run: |
+          if [ ! -x "$HOME/.elan/bin/elan" ]; then
+            curl --fail --silent --show-error --location \
+              https://raw.githubusercontent.com/leanprover/elan/13e8ade06344711b0a99be2374483872ac70d036/elan-init.sh \
+              --output "$RUNNER_TEMP/elan-init.sh"
+            sh "$RUNNER_TEMP/elan-init.sh" -y --default-toolchain none
+          fi
+          "$HOME/.elan/bin/elan" default leanprover/lean4:v4.33.1
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+      - name: Check every example and lesson in WASM, native programs, and Lake executable
+        run: npm run test:lean
+        env:
+          LEAN_LAB_REQUIRE_NATIVE: '1'
+      - name: Production build
+        run: npm run build
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Browser smoke tests against the production app
+        run: npm run test:production

@@ -3,7 +3,7 @@
 // See third_party/lean-wasm for attribution and the exact pinned artifact.
 import release from './release.json';
 
-declare const self: DedicatedWorkerGlobalScope & { Module: LeanModule };
+declare const self: DedicatedWorkerGlobalScope & { Module: LeanModule; runtimeKeepalivePush(): void };
 interface LeanModule {
   FS: { mkdir(path: string): void; writeFile(path: string, data: Uint8Array): void; chdir(path: string): void };
   ENV: Record<string, string>;
@@ -93,7 +93,13 @@ async function initialize() {
         self.Module.ENV.LEAN_PATH = '/lib/lean';
         self.Module.FS.chdir('/workspace');
       }],
-      onRuntimeInitialized: resolve,
+      onRuntimeInitialized: () => {
+        // This pinned Emscripten build exits when its async work drains unless
+        // a keepalive is held. Exit closes stdin/stdout/stderr, breaking later
+        // compile calls. Hold it for the lifetime of our persistent worker.
+        self.runtimeKeepalivePush();
+        resolve();
+      },
       onAbort: (reason: string) => reject(new Error(`Lean could not start: ${reason}`)),
     };
     self.Module = config as unknown as LeanModule;

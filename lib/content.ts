@@ -1,9 +1,11 @@
+import { mathExamples } from './math-examples';
 export type ExecutionMode = 'program' | 'check';
 export interface Example {
-  id: string; title: string; file: string; category: 'Getting started' | 'Programs' | 'Proofs';
+  id: string; title: string; file: string; category: 'Getting started' | 'Programs' | 'Proofs' | 'Classic mathematics' | 'Number theory' | 'Counting & logic' | 'Algebra & fields' | 'Cryptography';
   description: string; code: string; mode: ExecutionMode; expected: string;
   concepts: { token: string; explanation: string }[];
   challenge: string;
+  history?: { top100?: number; milestone: string; fact: string; scope: string; scopeLabel: string; source: string; sourceTitle: string };
 }
 export const examples: Example[] = [
   {
@@ -92,6 +94,7 @@ export const examples: Example[] = [
     code: `def double (n : Nat) : Nat := n + n\n\n-- Every output is the sum of two equal numbers\ntheorem double_eq (n : Nat) : double n = n + n := by\n  rfl\n\n-- Check a concrete result\nexample : double 21 = 42 := by\n  decide\n\ndef main : IO Unit := do\n  IO.println s!"double 21 = {double 21}"\n  IO.println "The function above also has a checked proof."\n`, expected: 'double 21 = 42\nThe function above also has a checked proof.',
     concepts: [{ token: 'def + theorem', explanation: 'A function and a theorem can coexist. Proving a property does not replace executing the program.' }, { token: 'example', explanation: 'An unnamed declaration, useful for checking a small claim.' }, { token: 'decide', explanation: 'Solves a proposition using its decision procedure, which is suitable for this concrete equality.' }], challenge: 'Change double to n * 2. What happens to the rfl proof?',
   },
+  ...mathExamples,
 ];
 
 export interface Lesson {

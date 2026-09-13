@@ -12,11 +12,12 @@
     "prebuild": "npm run setup",
     "build": "next build",
     "start": "next start",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "next typegen && tsc --noEmit",
     "test": "tsx --test tests/*.test.ts",
     "test:lean": "tsx tests/verify-lean.ts",
     "lint": "eslint app components lib scripts runtime tests --ignore-pattern release.json",
-    "test:browser-runtime": "tsx tests/verify-browser-runtime.ts"
+    "test:browser-runtime": "tsx tests/verify-browser-runtime.ts",
+    "test:production": "tsx scripts/test-production.ts"
   },
   "dependencies": {
     "@monaco-editor/react": "4.7.0",

@@ -33,7 +33,9 @@ assert.equal(run('def broken : Nat := "oops"').success, false); count++;
 assert.equal(run('example : False := by sorry').incomplete, true); count++;
 
 // Verify the native execution path taught in the app when Lean is installed.
-if (spawnSync('lean', ['--version']).status === 0) {
+const nativeAvailable = spawnSync('lean', ['--version'], { timeout: 30_000 }).status === 0;
+if (process.env.LEAN_LAB_REQUIRE_NATIVE === '1') assert.ok(nativeAvailable, 'CI requires native Lean; install the pinned toolchain before this test.');
+if (nativeAvailable) {
   const dir = await mkdtemp(path.join(tmpdir(), 'lean-lab-native-'));
   try {
     for (const example of examples.filter(example => example.mode === 'program')) {

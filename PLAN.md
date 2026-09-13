@@ -47,6 +47,14 @@ Full Mathlib, third-party Lake packages, collaboration/accounts, a remote compil
 
 ## Implementation outcome
 
-Implemented the editor workspace, 13 examples, 8 lessons, 24 syntax entries, themes, local persistence, sharing, diagnostics, and native execution guidance. The browser uses the smaller community Lean 4.33.0-pre WASM artifact with a pinned core library, served entirely from the app's origin. All setup scripts and tests use `.ts` as requested. The unused Cloudflare starter infrastructure was removed to keep deployment native to Vercel.
+Implemented the editor workspace, 44 examples, 8 lessons, 24 syntax entries, themes, local persistence, sharing, diagnostics, and native execution guidance. The browser uses the smaller community Lean 4.33.0-pre WASM artifact with a pinned core library, served entirely from the app's origin. All setup scripts and tests use `.ts` as requested. The unused Cloudflare starter infrastructure was removed to keep deployment native to Vercel.
 
 Validation includes actual WASM checks for every example and lesson solution, rejected unfinished starters, native `lean --run` for every program, and a built Lake executable. See README.md for repeatable commands and the supported runtime scope.
+
+## September 2026 refinement
+
+- Consolidate navigation on the left, with Examples beside a personal Playground, then Learn and Syntax. Keep the header to leanlab and Lean docs, at 46px high.
+- Separate stored files from open tabs, migrate existing drafts, and support naming, renaming, downloading, and deleting personal files. A Copy to Playground action connects the example library to independent work.
+- Add individual/all lesson-progress reset controls and the supplied Zcash donation address to Settings.
+- Add 25 Top 100 explorations and six quadratic/algebra/cryptography examples, with sourced historical comments and explicit proof scope. Verify every snippet in the pinned browser compiler; distinguish theorem proofs from finite or algebraic cases.
+- Keep the local app running for user review. Publishing a PR still requires explicit approval; the user separately authorized pushing this repository to main.

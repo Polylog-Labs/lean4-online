@@ -20,12 +20,24 @@ All authored application code, setup scripts, and tests use TypeScript. There ar
 ## What works
 
 - Monaco editor, Lean syntax highlighting, Unicode symbol suggestions, independent file tabs, and source-position diagnostics.
-- 13 runnable examples covering programming, data types, IO, tactics, induction, and a program with a proof.
+- 44 runnable examples: 13 programming/proof foundations, 25 explorations from the mathematical Top 100 list, the quadratic equation, rings, GF(5), GF(4), Diffie–Hellman, and toy RSA.
+- A compact header and left navigation: Examples, Playground, Learn, Syntax. Collapsible, searchable example groups.
+- A personal My files directory with program/proof starters, create, rename, download, delete, and independent tabs. Copy any example into Playground; closing a tab retains your file.
 - 8 lessons with editable exercises, hints, solutions, and Lean-checked completion. Incorrect answers and `sorry` placeholders do not complete a lesson.
 - 24 syntax reference entries with explanations and links to runnable examples.
 - Run/check/stop, execution timeout, bounded output, and worker recovery.
 - Light, dark, and system themes; responsive panels; keyboard shortcuts; resizable console.
-- Device-local autosave and lesson progress; Unicode-safe share links; `.lean` file downloads.
+- Device-local autosave and lesson progress; Unicode-safe share links; `.lean` file downloads. Original v1 drafts migrate automatically to a file store with separately tracked tabs.
+- Reset individual lessons or all completed lesson progress in Settings without deleting code.
+- A Zcash donation address and copy button in Settings.
+
+## Mathematics collection
+
+The 25 selected topics come from the [Top 100 theorem list](http://pirate.shu.edu/~kahlnath/Top100.html), using its [Lurch reproduction](https://lurch.plus/100/) for historical metadata and [Freek Wiedijk’s index](https://www.cs.ru.nl/~freek/100/) for the corrected theorem titles. Comments and guides include historical milestones, a mathematical fact, a source, and the exact scope of the Lean statement. Ancient dates are approximate; unknown dates remain marked unknown. These are original educational Lean snippets, not copied formalizations from that index.
+
+The collection deliberately distinguishes general proofs (Cantor, natural-number induction, finite sums), identities or restricted theorems (Pythagorean triples, quadratic completion, two-dimensional Cauchy–Schwarz), and concrete explorations (Heron, Wilson, perfect numbers). It does **not** claim 25 full formalizations of the named historical theorems. The examples use the existing core runtime and do not require Mathlib. `grind`, `omega`, explicit witnesses, induction, and finite `decide` proofs all produce checked evidence.
+
+The field examples verify the commutative ring axioms and nonzero inverses on all elements of concrete finite types, without creating Mathlib typeclass instances. The cryptography programs use tiny educational parameters: they prove agreement/round-trip properties, not security, and are not encryption tools for real data.
 
 ## Execution model
 
@@ -61,7 +73,15 @@ npm run build
 
 `test:lean` executes every example, every lesson solution, and every unfinished starter against the actual pinned WASM binary. It also checks negative proofs/type errors. If native Lean is installed, it verifies `lean --run` for every program and the Lake executable workflow.
 
-With the app running, verify the actual browser Web Worker and isolation headers:
+CI runs on every push and pull request via `.github/workflows/ci.yml`: TypeScript, lint, unit tests, all 44 examples and lesson checks in WASM, native programs with Lean 4.33.1, a Lake executable, the production build, and all examples in Chromium. Native Lean is mandatory in CI. The toolchains are cached by version. The browser suite yields between compiles to catch runtime shutdowns between user actions.
+
+To run the production browser smoke test locally after building:
+
+```sh
+npm run test:production
+```
+
+This starts and stops an isolated production server on port 3100, leaving the development server running. With the development app already running, verify the actual browser Web Worker and isolation headers:
 
 ```sh
 # Linux/CI: install a test browser first
@@ -90,7 +110,9 @@ These headers enable `SharedArrayBuffer`, required by threaded Lean WASM. Runtim
 
 - `PLAN.md` — product and implementation plan.
 - `components/` — workspace, editor, lessons, and reference UI.
-- `lib/content.ts` — original examples, lesson content, solutions, and validation declarations.
+- `lib/content.ts` — foundational examples, lesson content, solutions, and validation declarations.
+- `lib/math-examples.ts` — 25 classic-math explorations plus the quadratic, algebra, finite-field, and cryptography collection.
+- `lib/workspace.ts` — file validation, collision handling, tab persistence, and v1 draft migration.
 - `lib/use-lean.ts` — worker lifecycle, cancellation, and timeouts.
 - `lib/lean.ts` — diagnostic parsing, execution source generation, and snippet sharing.
 - `runtime/lean.worker.ts` — actual Lean WASM host, library loading, and caching.
