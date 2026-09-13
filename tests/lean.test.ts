@@ -33,6 +33,9 @@ test('shared snippets preserve Lean Unicode and reject oversized payloads', () =
 test('all teaching links and identifiers resolve', () => {
   assert.equal(new Set(examples.map(example => example.id)).size, examples.length);
   assert.equal(new Set(lessons.map(lesson => lesson.id)).size, lessons.length);
+  assert.equal(new Set(syntax.map(item => item.token)).size, syntax.length);
+  for (const example of examples) for (const id of example.related ?? []) assert.ok(examples.some(item => item.id === id), `Missing related example ${id}`);
+  assert.deepEqual(examples.filter(example => example.incomplete).map(example => example.id), ['sorry-example']);
   for (const item of [...lessons, ...syntax]) assert.ok(examples.some(example => example.id === item.exampleId));
   for (const lesson of lessons) assert.ok(lesson.validation && lesson.solution && lesson.starter);
 });

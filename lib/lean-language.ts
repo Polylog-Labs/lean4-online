@@ -33,7 +33,7 @@ export const leanParser: StreamParser<{ commentDepth: number; string: boolean }>
       const word = typeof identifier === 'boolean' ? '' : identifier[0];
       return leanKeywords.has(word) ? 'keyword' : leanTactics.has(word) ? 'atom' : leanTypes.has(word) ? 'typeName' : 'variableName';
     }
-    if (stream.match(/[→←∀∃∧∨¬↔≠≤≥∈∉∣×∘▸⊢∑∏∫√⊆∪∩+*=<>:|·-]+/)) return 'operator';
+    if (stream.match(/[→←∀∃∧∨¬↔≠≤≥∈∉∣×∘▸⊢∑∏∫√⊆∪∩+*=<>:|&^~·-]+/)) return 'operator';
     stream.next(); return null;
   },
   languageData: { commentTokens: { line: '--', block: { open: '/-', close: '-/' } }, indentOnInput: /^\s*(\||else|end)\b/ },

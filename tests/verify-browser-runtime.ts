@@ -1,14 +1,17 @@
 import assert from 'node:assert/strict';
-import { chromium } from '@playwright/test';
+import { chromium, webkit, expect } from '@playwright/test';
 import { existsSync } from 'node:fs';
-import { examples } from '../lib/content';
+import { examples, lessons } from '../lib/content';
 import { finishRun, sourceForRun, type OutputLine } from '../lib/lean';
 import type { Monaco } from '@monaco-editor/react';
 import type { editor } from 'monaco-editor';
 import type { DownloadProgress } from '../runtime/config';
+import { hashVectorCode, hashDigests } from './hash-vectors';
 
 const chrome = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
-const browser = await chromium.launch({ headless: true, ...(existsSync(chrome) ? { executablePath: chrome } : {}) });
+const browser = process.argv.includes('--webkit')
+  ? await webkit.launch()
+  : await chromium.launch({ headless: true, ...(existsSync(chrome) ? { executablePath: chrome } : {}) });
 try {
   const page = await browser.newPage();
   const runtimeRequests: string[] = [];
@@ -28,7 +31,7 @@ try {
   assert.ok(!editorCode.includes('DOMPurify 3.4.8'), 'Do not serve Monaco’s embedded old sanitizer');
   console.log('PASS editor API: Lean model initialized and patched sanitizer served.');
   // Exercise the real browser worker protocol, without driving or inspecting UI.
-  const cases = [...examples.map(example => sourceForRun(example.code, example.mode)), 'example : 2 + 2 = 5 := by rfl'];
+  const cases = [...examples.map(example => sourceForRun(example.code, example.mode)), hashVectorCode, 'example : 2 + 2 = 5 := by rfl'];
   async function exercise(cases: string[]) { return page.evaluate(async ({ codes, workerURL }) => {
     if (!crossOriginIsolated) throw new Error('COOP/COEP isolation is missing.');
     return new Promise<{ results: { success: boolean; elapsed: number; lines: OutputLine[] }[]; downloads: DownloadProgress[]; memory: number[] }>((resolve, reject) => {
@@ -44,7 +47,7 @@ try {
         const message = event.data;
         if (message.memoryBytes) memory.push(message.memoryBytes);
         if (message.type === 'progress' && message.download) downloads.push(message.download);
-        if (message.type === 'error') { cleanup(); reject(new Error(message.message)); }
+        if (message.type === 'error') { cleanup(); reject(new Error(`Case ${id}: ${message.message}`)); }
         if (message.type === 'ready') worker.postMessage({ type: 'run', id, code: codes[id] });
         if (message.type === 'output') lines.push({ text: message.text, stream: message.stream });
         if (message.type === 'result') {
@@ -59,9 +62,13 @@ try {
   }, { codes: cases, workerURL: process.env.LEAN_LAB_WORKER_URL || '/lean-worker.js' }); }
   const first = await exercise(cases);
   const parsed = first.results.map(result => finishRun(result.success, result.elapsed, result.lines));
+  const hashes = parsed[examples.length];
+  assert.ok(hashes.success && !hashes.incomplete, `Browser SHA-256: ${JSON.stringify(hashes)}`);
+  assert.equal(hashes.output.map(line => line.text.trim()).join('\n').trim(), hashDigests.join('\n'), 'Browser SHA-256 reference vectors');
   for (const [index, example] of examples.entries()) {
     const result = parsed[index];
-    assert.ok(result.success && !result.incomplete, `${example.id}: ${JSON.stringify(result)}`);
+    assert.ok(result.success, `${example.id}: ${JSON.stringify(result)}`);
+    assert.equal(result.incomplete, !!example.incomplete, `${example.id} browser completion status`);
     assert.equal(result.output.map(line => line.text).join('\n').trim() || 'File checked successfully.', example.expected, `${example.id} browser output`);
   }
   assert.equal(parsed.at(-1)!.success, false);
@@ -90,4 +97,40 @@ try {
   assert.equal(runtimeRequests.length, requestCount, 'A fresh worker reuses the downloaded runtime cache');
   console.log(`PASS download: ${(last.total / 1_000_000).toFixed(1)} MB, live byte progress, and cache reuse without network requests.`);
   console.log(`PASS browser WASM: all ${examples.length} examples and expected outputs, rejected invalid proof, and COOP/COEP headers.`);
+  const origin = new URL(page.url()).origin;
+  const reading = await browser.newPage({ javaScriptEnabled: false, viewport: { width: 390, height: 844 } });
+  const readingRequests: string[] = [];
+  reading.on('request', request => readingRequests.push(request.url()));
+  await reading.goto(`${origin}/examples`);
+  await expect(reading.locator('article li > a')).toHaveCount(examples.length);
+  await reading.goto(`${origin}/learn`);
+  await expect(reading.locator('article li > a')).toHaveCount(lessons.length);
+  await reading.goto(`${origin}/learn/curry-howard`);
+  await expect(reading.locator('article')).toContainText('The Curry–Howard correspondence');
+  await reading.getByText('Solution', { exact: true }).click();
+  await expect(reading.locator('details').last()).toContainText('fun hp => hp');
+  assert.ok(await reading.evaluate(() => document.documentElement.scrollHeight > innerHeight && getComputedStyle(document.body).overflowY !== 'hidden'), 'Reading pages scroll on mobile without JavaScript');
+  await reading.goto(`${origin}/examples/sha256`);
+  await expect(reading.locator('article')).toContainText('def digest (message : String)');
+  assert.ok(!readingRequests.some(url => /\/editor\/|\.pack|lean-worker/.test(url)), 'Reading pages do not preload the editor or compiler');
+  for (const path of ['/llms.txt', '/agent.txt', '/agents.txt', '/llms-full.txt']) {
+    const response = await reading.request.get(`${origin}${path}`);
+    assert.ok(response.ok(), path);
+    assert.match(response.headers()['content-type'], /text\/plain/);
+    const text = await response.text();
+    assert.ok(text.includes('Mathlib') && text.includes('not bundled') && text.includes('Curry–Howard'), `${path} explains capabilities and limitations`);
+    if (path === '/llms-full.txt') for (const lesson of lessons) assert.ok(text.includes(lesson.paragraphs[0]), `Agent text contains ${lesson.id}`);
+  }
+  const sitemap = await (await reading.request.get(`${origin}/sitemap.xml`)).text();
+  for (const item of examples) assert.ok(sitemap.includes(`/examples/${item.id}`));
+  for (const item of lessons) assert.ok(sitemap.includes(`/learn/${item.id}`));
+  assert.equal((await reading.request.get(`${origin}/examples/not-an-example`)).status(), 404);
+  await reading.close();
+  await page.goto(`${origin}/examples/curry-howard`);
+  await page.getByRole('link', { name: 'Open CurryHoward.lean in editor' }).click();
+  await expect(page.getByRole('tab', { name: 'λ CurryHoward.lean' })).toHaveAttribute('aria-selected', 'true');
+  await page.goto(`${origin}/learn/first-proof`);
+  await page.getByRole('link', { name: 'Open exercise in editor' }).click();
+  await expect(page.locator('.guide-panel h2')).toHaveText('Prove 2 + 2 = 4');
+  console.log('PASS public content: no-JavaScript examples/lessons, mobile scrolling, agent text, sitemap, 404s, and links into the editor.');
 } finally { await browser.close(); }

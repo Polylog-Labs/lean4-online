@@ -28,9 +28,9 @@ function insertSymbol(view: EditorView) {
   return true;
 }
 const themeSlot = new Compartment();
-function editorTheme(dark: boolean) {
+function editorTheme(dark: boolean, fontSize: number) {
   return EditorView.theme({
-    '&': { height: '100%', fontSize: '16px', color: 'var(--text)', backgroundColor: 'var(--surface)' },
+    '&': { height: '100%', fontSize: `${Math.max(16, fontSize)}px`, color: 'var(--text)', backgroundColor: 'var(--surface)' },
     '&.cm-focused': { outline: 'none' },
     '.cm-scroller': { fontFamily: 'var(--font-mono)', lineHeight: '1.55', overscrollBehavior: 'contain' },
     '.cm-content': { padding: '12px 0', caretColor: 'var(--accent)' },
@@ -60,7 +60,7 @@ export function MobileEditor(props: LeanEditorProps) {
       leanLanguage, syntaxHighlighting(colors), history(), lineNumbers(), highlightActiveLineGutter(), bracketMatching(),
       indentUnit.of('  '), EditorState.tabSize.of(2), EditorView.lineWrapping,
       EditorView.contentAttributes.of({ 'aria-label': 'Lean source code editor', 'aria-multiline': 'true', autocorrect: 'off', autocapitalize: 'off', spellcheck: 'false' }),
-      themeSlot.of(editorTheme(latest.current.theme === 'dark')),
+      themeSlot.of(editorTheme(latest.current.theme === 'dark', latest.current.fontSize)),
       Prec.high(keymap.of([{ key: 'Tab', run: insertSymbol }, { key: 'Enter', run: insertSymbol }])),
       keymap.of([...defaultKeymap, ...historyKeymap, ...searchKeymap, indentWithTab]),
       EditorView.inputHandler.of((view, _from, _to, text) => text === '\n' && insertSymbol(view)),
@@ -93,7 +93,7 @@ export function MobileEditor(props: LeanEditorProps) {
     }
     if (view.state.doc.toString() !== props.value) view.dispatch({ changes: { from: 0, to: view.state.doc.length, insert: props.value }, annotations: Transaction.addToHistory.of(false) });
   }, [props.id, props.value]);
-  useEffect(() => { viewRef.current?.dispatch({ effects: themeSlot.reconfigure(editorTheme(props.theme === 'dark')) }); }, [props.theme, props.id]);
+  useEffect(() => { viewRef.current?.dispatch({ effects: themeSlot.reconfigure(editorTheme(props.theme === 'dark', props.fontSize)) }); }, [props.theme, props.fontSize, props.id]);
   useEffect(() => {
     const view = viewRef.current;
     if (!view) return;

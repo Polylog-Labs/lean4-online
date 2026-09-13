@@ -1,0 +1,20 @@
+.content-page { width: min(920px, 100%); margin: 0 auto; padding: 24px; font-size: 16px; line-height: 1.8; }
+.content-page > header { display: flex; justify-content: space-between; gap: 24px; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 20px; }
+.content-page nav, .content-page footer { display: flex; flex-wrap: wrap; gap: 20px; font-size: 13px; }
+.content-page article { padding: 32px 0; }
+.content-page h1 { font-size: clamp(26px, 5vw, 38px); line-height: 1.25; margin: 12px 0 24px; }
+.content-page h2 { font-size: 23px; margin: 32px 0 14px; }
+.content-page h3 { font-size: 17px; margin-top: 24px; }
+.content-page p { color: var(--muted); margin: 12px 0; }
+.content-page a:not(.brand):not(.button) { color: var(--accent-dark); text-decoration: underline; text-underline-offset: 3px; }
+.content-page .button { margin: 10px 0; font-size: 14px; }
+.content-page pre { font-size: 13px; line-height: 1.7; padding: 20px; background: var(--code-bg); border: 1px solid var(--border); border-radius: 6px; overflow-x: auto; white-space: pre; margin: 20px 0; }
+.content-page pre code { font-size: inherit; }
+.content-page ul { padding-left: 24px; }
+.content-page li { margin: 12px 0; }
+.content-page li p { margin: 2px 0 14px; font-size: 14px; }
+.content-page summary { cursor: pointer; color: var(--accent-dark); }
+.content-page details { margin: 20px 0; }
+.content-page footer { border-top: 1px solid var(--border); padding: 24px 0; }
+.content-category { font-size: 13px; }
+@media (max-width: 600px) { .content-page { padding: 18px; } .content-page > header { flex-wrap: wrap; } }

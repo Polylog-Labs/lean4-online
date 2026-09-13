@@ -1,3 +1,4 @@
+import { extraSyntax } from './extra-syntax';
 export interface SyntaxEntry { token: string; group: string; title: string; code: string; explanation: string; exampleId: string; input?: string }
 export const syntax: SyntaxEntry[] = [
   { token: 'import', group: 'Declarations', title: 'Import a library module', code: 'import Init.Data.Nat.Gcd\n\n#eval Nat.gcd 48 18', explanation: 'Makes a module and its dependencies available. The dotted name corresponds to a module path. Init is Lean’s core library. Std is the standard library of additional programming tools; Mathlib is a separate mathematics library. This workspace currently includes Init.', exampleId: 'core-math' },
@@ -71,4 +72,5 @@ export const syntax: SyntaxEntry[] = [
   { token: 'induction', group: 'Proofs', title: 'Prove recursive properties', code: 'example (n : Nat) : 0 + n = n := by\n  induction n with\n  | zero => rfl\n  | succ n ih => simp only [Nat.add_succ, ih]', explanation: 'Breaks a proof into constructor cases and supplies hypotheses for smaller recursive values.', exampleId: 'induction' },
   { token: 'sorry', group: 'Proofs', title: 'An unfinished proof', code: 'example : 2 + 2 = 4 := by\n  sorry', explanation: 'A placeholder that admits a statement and produces a warning. leanlab never counts a proof with this warning as a completed lesson.', exampleId: 'proof' },
   { token: '-- · /- … -/', group: 'Declarations', title: 'Comments', code: '-- A line comment\n/- A block comment\n   spanning multiple lines -/', explanation: 'Comments explain code without being executed. Lean block comments can nest inside one another.', exampleId: 'hello' },
+  ...extraSyntax,
 ];

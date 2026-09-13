@@ -93,7 +93,7 @@
 
 /* Phones and touch devices show one workspace panel at a time. */
 @media (max-width: 900px), (pointer: coarse) {
-  html, body { overflow: hidden; }
+  html:has(.app-shell), body:has(.app-shell) { overflow: hidden; }
   .app-shell { position: fixed; width: 100%; top: var(--viewport-top, 0px); height: var(--viewport-height, 100dvh); min-height: 0; }
   .app-shell .topbar { padding: 0 12px 0 6px; height: 46px; gap: 7px; }
   .topbar .brand { font-size: 20px; }
@@ -181,3 +181,17 @@
   .modal-buttons { flex-wrap: wrap; }
   .toast { bottom: 76px; }
 }
+
+/* Scale reading material with the editor preference, including lesson solutions. */
+.guide-scroll { --guide-text-size: var(--reading-size, 13px); font-size: var(--guide-text-size); }
+.guide-scroll :is(p, h3, .text-button, .text-link, .related-example, .terminal-snippet) { font-size: 1em; }
+.guide-scroll :is(pre, .concept > code) { font-size: .92em; }
+.guide-scroll h2 { font-size: 1.7em; }
+.guide-scroll :is(.eyebrow, .difficulty, .challenge-label, .expected-label) { font-size: .75em; }
+.guide-scroll .code-snippet { overflow-x: auto; }
+@media (max-width: 900px), (pointer: coarse) {
+  .guide-scroll { --guide-text-size: max(13px, var(--reading-size, 13px)); }
+}
+
+.reference-resource { display: flex; margin-top: 12px; }
+.guide-scroll .related-example { white-space: normal; text-align: left; margin-bottom: 8px; }

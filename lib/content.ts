@@ -1,10 +1,17 @@
 import { mathExamples } from './math-examples';
+import { firstProofExamples, smallExamples } from './learning-examples';
+import { advancedExamples } from './advanced-examples';
+import { hashExamples } from './hash-examples';
+import { introductoryLessons, furtherLessons } from './extra-lessons';
 export type ExecutionMode = 'program' | 'check';
 export interface Example {
-  id: string; title: string; file: string; category: 'Getting started' | 'Programs' | 'Proofs' | 'Classic mathematics' | 'Number theory' | 'Counting & logic' | 'Algebra & fields' | 'Cryptography';
+  id: string; title: string; file: string; category: 'Getting started' | 'Programs' | 'Proofs' | 'Classic mathematics' | 'Number theory' | 'Counting & logic' | 'Algebra & fields' | 'Cryptography' | 'Advanced Lean';
   description: string; code: string; mode: ExecutionMode; expected: string;
   concepts: { token: string; explanation: string }[];
   challenge: string;
+  incomplete?: true;
+  related?: string[];
+  references?: { title: string; url: string }[];
   history?: { top100?: number; milestone: string; fact: string; scope: string; scopeLabel: string; source: string; sourceTitle: string };
 }
 export const examples: Example[] = [
@@ -16,6 +23,7 @@ export const examples: Example[] = [
     concepts: [{ token: 'def', explanation: 'Defines a value or a function. double accepts a natural number and returns its sum with itself.' }, { token: 'example … := by rfl', explanation: 'States an unnamed proposition and proves it by reflexivity: both sides reduce to the same expression.' }, { token: 'main : IO Unit', explanation: 'The entry point of a program. IO.println writes a line to Output.' }],
     challenge: 'Change 21 to another natural number and run the file again. Then open Learn for guided exercises.',
   },
+  ...firstProofExamples,
   {
     id: 'hello', title: 'Hello, world', file: 'Hello.lean', category: 'Getting started', mode: 'program',
     description: 'Define a function and print its result from main.',
@@ -102,7 +110,10 @@ export const examples: Example[] = [
     code: `def double (n : Nat) : Nat := n + n\n\n-- Every output is the sum of two equal numbers\ntheorem double_eq (n : Nat) : double n = n + n := by\n  rfl\n\n-- Check a concrete result\nexample : double 21 = 42 := by\n  decide\n\ndef main : IO Unit := do\n  IO.println s!"double 21 = {double 21}"\n  IO.println "The function above also has a checked proof."\n`, expected: 'double 21 = 42\nThe function above also has a checked proof.',
     concepts: [{ token: 'def + theorem', explanation: 'A function and a theorem can coexist. Proving a property does not replace executing the program.' }, { token: 'example', explanation: 'An unnamed declaration. Here it checks a proposition.' }, { token: 'decide', explanation: 'Solves a proposition using its decision procedure, which is suitable for this concrete equality.' }], challenge: 'Change double to n * 2. What happens to the rfl proof?',
   },
+  ...smallExamples,
   ...mathExamples,
+  ...hashExamples,
+  ...advancedExamples,
   { id: 'core-math', title: 'Using the core math library', file: 'CoreMath.lean', category: 'Number theory', mode: 'check',
     description: 'Import a core module, reuse a library theorem, and prove a concrete large-number GCD equality.',
     code: `import Init.Data.Nat.Gcd\n\n-- Init ships with Lean. This example does not require Mathlib.\n-- Reuse a general theorem rather than proving it again.\nexample (a b : Nat) : Nat.gcd a b = Nat.gcd b a :=\n  Nat.gcd_comm a b\n\n-- A concrete equality, proved by a decision procedure.\nexample :\n    Nat.gcd (2^100 - 1) (2^60 - 1) = 2^20 - 1 := by\n  decide\n\n#eval Nat.gcd (2^100 - 1) (2^60 - 1)\n`, expected: '1048575',
@@ -113,18 +124,25 @@ export const examples: Example[] = [
     concepts: [{ token: '∀ · ∃', explanation: '∀ means “for every”; ∃ means “there exists.” Read the bound variables from left to right. Here the witness m may depend on n.' }, { token: '∧ · ↔', explanation: '∧ joins two claims that must both hold. ↔ asks for implications in both directions.' }, { token: '⟨ … ⟩', explanation: 'Constructs a witness together with the required proofs, or combines proofs of a conjunction.' }, { token: 'Unicode input', explanation: 'Type \\forall, \\exists, \\and, or \\iff and accept the editor suggestion with Enter or Tab. Symbols are Lean source characters, not rendered LaTeX.' }], challenge: 'Use n + 2 as the witness in the first theorem and update the statement accordingly.' },
 ];
 
+export const lessonTracks = ['Foundations', 'Programming', 'Proving', 'Cryptography', 'Advanced Lean'] as const;
+export const trackDescriptions: Record<typeof lessonTracks[number], string> = {
+  Foundations: 'First proofs, values, and functions', Programming: 'IO, recursion, and lists',
+  Proving: 'Propositions and proof tactics', Cryptography: 'Hashes, collisions, and message digests',
+  'Advanced Lean': 'Proof efficiency and program performance',
+};
 export interface Lesson {
-  id: string; title: string; description: string; duration: string; track: 'Foundations' | 'Programming' | 'Proving';
+  id: string; title: string; description: string; duration: string; track: typeof lessonTracks[number]; mode?: ExecutionMode;
   exampleId: string; paragraphs: string[]; task: string; starter: string; solution: string; validation: string; hint: string;
 }
 export const lessons: Lesson[] = [
+  ...introductoryLessons,
   { id: 'values', title: 'Values and types', description: 'Values, types, and your first expression.', duration: '5 min', track: 'Foundations', exampleId: 'expressions',
     paragraphs: ['Lean is both a programming language and a proof assistant. You can calculate with it, write applications, and express claims that the type checker verifies.', 'Every expression has a type. Nat is the type of natural numbers. A colon introduces a type annotation, and := provides the value of a definition. #eval executes an expression; #check tells you its type.'],
     task: 'Define answer as a natural number equal to 42. Use a literal or an arithmetic expression.', starter: 'def answer : Nat := 0\n\n#eval answer\n', solution: 'def answer : Nat := 6 * 7\n\n#eval answer\n', validation: 'example : answer = 42 := by decide', hint: 'Replace 0 with 6 * 7. Nat multiplication uses *.' },
   { id: 'functions', title: 'Functions', description: 'Define functions with typed parameters.', duration: '7 min', track: 'Foundations', exampleId: 'functions',
     paragraphs: ['The declaration def double (n : Nat) : Nat := n * 2 describes a function. The parentheses bind an input named n, the next colon gives the output type, and the final expression computes the result.', 'Lean uses spaces for function application. double 21 applies the function to 21. Parentheses are for grouping: double (3 + 4).'],
     task: 'Implement triple so that it multiplies its natural-number input by three.', starter: 'def triple (n : Nat) : Nat :=\n  n\n\n#eval triple 14\n', solution: 'def triple (n : Nat) : Nat :=\n  n * 3\n\n#eval triple 14\n', validation: 'example : triple 0 = 0 := by decide\nexample : triple 7 = 21 := by decide\nexample : triple 14 = 42 := by decide', hint: 'The body can be n * 3. You do not need a return keyword.' },
-  { id: 'io', title: 'Programs and IO', description: 'Define main and sequence IO actions with do.', duration: '8 min', track: 'Programming', exampleId: 'hello',
+  { id: 'io', title: 'Programs and IO', description: 'Define main and sequence IO actions with do.', duration: '8 min', track: 'Programming', mode: 'program', exampleId: 'hello',
     paragraphs: ['A Lean program has a main declaration. The type IO Unit describes an action that may perform input/output and finishes without a meaningful value. IO.println prints a line; do sequences several actions.', 'In this browser, Run program evaluates main with Lean’s #eval command in an isolated worker. On your computer, lean --run Main.lean runs main. A Lake executable target can compile the same program into a native binary.'],
     task: 'Define greeting as "Hello, Lean!", then run the main program that prints it.', starter: 'def greeting : String := "Hello"\n\ndef main : IO Unit := do\n  IO.println greeting\n', solution: 'def greeting : String := "Hello, Lean!"\n\ndef main : IO Unit := do\n  IO.println greeting\n', validation: 'example : greeting = "Hello, Lean!" := by decide', hint: 'Change the string assigned to greeting. Run program executes the supplied main action.' },
   { id: 'matching', title: 'Pattern matching and recursion', description: 'Handle cases and write a recursive function.', duration: '10 min', track: 'Programming', exampleId: 'factorial',
@@ -139,7 +157,7 @@ export const lessons: Lesson[] = [
   { id: 'implication', title: 'Implication proofs', description: 'Build proofs with intro and exact.', duration: '9 min', track: 'Proving', exampleId: 'logic',
     paragraphs: ['To prove P → P, assume a proof of P and return it. This is the same shape as an identity function. intro h names the assumption; exact h supplies it as the solution.', 'Tactics transform the goal. When reading a proof, track which assumptions you have and what proposition remains to prove. Error diagnostics often show this proof state when a tactic fails.'],
     task: 'Prove P → Q → P for arbitrary propositions P and Q.', starter: 'theorem keep_first (P Q : Prop) : P → Q → P := by\n  sorry\n', solution: 'theorem keep_first (P Q : Prop) : P → Q → P := by\n  intro hp hq\n  exact hp\n', validation: 'example (P Q : Prop) : P → Q → P := keep_first P Q', hint: 'Introduce hp and hq, then exact hp. The second assumption is not needed.' },
-  { id: 'verified', title: 'Proving program properties', description: 'Give an executable function a checked property.', duration: '10 min', track: 'Proving', exampleId: 'verified',
+  { id: 'verified', title: 'Proving program properties', description: 'Give an executable function a checked property.', duration: '10 min', track: 'Proving', mode: 'program', exampleId: 'verified',
     paragraphs: ['Lean lets executable definitions and mathematical statements refer to each other directly. A theorem can describe exactly what a function computes.', 'The proof below follows from the definition. This is a small first step toward verification: larger developments prove invariants, boundary conditions, and algorithmic correctness. A checked theorem establishes the stated property; it does not establish every possible property of a program.'],
     task: 'Finish inc_spec with rfl, then run the program.', starter: 'def inc (n : Nat) : Nat := n + 1\n\ntheorem inc_spec (n : Nat) : inc n = n + 1 := by\n  sorry\n\ndef main : IO Unit := do\n  IO.println s!"inc 41 = {inc 41}"\n', solution: 'def inc (n : Nat) : Nat := n + 1\n\ntheorem inc_spec (n : Nat) : inc n = n + 1 := by\n  rfl\n\ndef main : IO Unit := do\n  IO.println s!"inc 41 = {inc 41}"\n', validation: 'example (n : Nat) : inc n = n + 1 := inc_spec n', hint: 'Unfolding inc makes both sides identical. rfl performs that reduction for you.' },
   { id: 'notation', title: 'Mathematical symbols', description: 'Read quantifiers, logical connectives, and proof goals.', duration: '10 min', track: 'Proving', exampleId: 'notation',
@@ -148,6 +166,7 @@ export const lessons: Lesson[] = [
   { id: 'libraries', title: 'Libraries and mathematical notation', description: 'Reuse library theorems and recognize Mathlib notation.', duration: '8 min', track: 'Proving', exampleId: 'core-math',
     paragraphs: ['import loads a module; open shortens names from a namespace. A declaration such as Nat.gcd_comm is an existing theorem that you can apply directly. #check Nat.gcd_comm displays its full type and parameters.', 'Init is Lean’s core library. Std adds programming tools, including maps and sets. Mathlib is a separate community mathematics library with definitions and theorems for algebra, number theory, geometry, and analysis. This browser currently includes Init, so import Mathlib and tactics such as norm_num are unavailable.', 'Mathlib code often uses ℕ, ℤ, ℚ, ℝ, and ℂ for natural, integer, rational, real, and complex numbers. Other common notation includes ∑ for a finite sum, ∏ for a finite product, ∫ for an integral, √ for a square root, ∪ for union, ∩ for intersection, and ⊆ for subset. The required imports, types, and opened notation scopes determine how these expressions are interpreted.', 'In declarations such as variable (R : Type*) [CommRing R], the square brackets request an instance giving R its ring operations and laws. In x : ℝ, the colon still means “has type.” Writing a symbol or inserting its editor completion does not load the library that defines it.'],
     task: 'Prove that swapping the arguments of Nat.gcd leaves the result unchanged by applying Nat.gcd_comm.', starter: 'import Init.Data.Nat.Gcd\n\ntheorem gcd_swap (a b : Nat) : Nat.gcd a b = Nat.gcd b a := by\n  sorry\n', solution: 'import Init.Data.Nat.Gcd\n\ntheorem gcd_swap (a b : Nat) : Nat.gcd a b = Nat.gcd b a := by\n  exact Nat.gcd_comm a b\n', validation: 'example (a b : Nat) : Nat.gcd a b = Nat.gcd b a := gcd_swap a b', hint: 'The library theorem already states the required equality. Use exact Nat.gcd_comm a b.' },
+  ...furtherLessons,
 ];
 
 export { syntax } from './syntax';

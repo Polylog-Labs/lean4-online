@@ -7,6 +7,7 @@ import { examples, lessons, syntax } from '../lib/content';
 import { finishRun, sourceForRun } from '../lib/lean';
 import { fixtureRoot, prepareRuntime } from '../scripts/prepare-runtime';
 import { bootLean } from './wasm-driver';
+import { hashVectorCode, hashDigests } from './hash-vectors';
 
 await prepareRuntime();
 console.log('Booting the actual Lean WASM compiler…');
@@ -15,11 +16,16 @@ let count = 0;
 const run = (code: string) => { const result = compile(code); return finishRun(result.success, result.elapsed, result.lines); };
 for (const example of examples) {
   const result = run(sourceForRun(example.code, example.mode));
-  assert.ok(result.success && !result.incomplete, `${example.id}: ${JSON.stringify(result)}`);
+  assert.ok(result.success, `${example.id}: ${JSON.stringify(result)}`);
+  assert.equal(result.incomplete, !!example.incomplete, `${example.id} completion status`);
   const actual = result.output.map(line => line.text).join('\n').trim();
   assert.equal(actual || 'File checked successfully.', example.expected, `${example.id} output`);
   console.log(`PASS example: ${example.title} (${Math.round(result.elapsed)} ms)`); count++;
 }
+const hashes = run(hashVectorCode);
+assert.ok(hashes.success && !hashes.incomplete, `SHA-256 vectors: ${JSON.stringify(hashes)}`);
+assert.equal(hashes.output.map(line => line.text.trim()).join('\n').trim(), hashDigests.join('\n'), 'SHA-256 reference vectors');
+console.log(`PASS SHA-256: ${hashDigests.length} reference vectors`); count += hashDigests.length;
 for (const item of syntax) {
   const result = run(item.code);
   assert.ok(result.success, `${item.title} syntax: ${JSON.stringify(result)}`);
@@ -27,7 +33,7 @@ for (const item of syntax) {
   console.log(`PASS syntax: ${item.title}`); count++;
 }
 for (const lesson of lessons) {
-  const mode = ['io', 'verified'].includes(lesson.id) ? 'program' : 'check';
+  const mode = lesson.mode ?? 'check';
   const solution = run(sourceForRun(lesson.solution, mode, lesson.validation));
   assert.ok(solution.success && !solution.incomplete, `${lesson.id} solution: ${JSON.stringify(solution)}`);
   const starter = run(sourceForRun(lesson.starter, mode, lesson.validation));

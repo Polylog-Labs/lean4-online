@@ -3,6 +3,7 @@ import { expect, webkit } from '@playwright/test';
 import type { Monaco } from '@monaco-editor/react';
 import type { editor } from 'monaco-editor';
 import { encodeSnippet } from '../lib/lean';
+import { advancedExamples } from '../lib/advanced-examples';
 
 const url = process.env.LEAN_LAB_URL || 'http://localhost:3000';
 const browser = await webkit.launch();
@@ -52,6 +53,19 @@ try {
   await expect(page.getByRole('region', { name: 'Lean execution results' })).toBeVisible();
   await page.getByRole('button', { name: 'Collapse output', exact: true }).click();
   await expect(page.getByRole('region', { name: 'Lean execution results' })).toBeHidden();
+  await page.getByRole('button', { name: 'Settings', exact: true }).click();
+  const textSize = page.getByRole('slider', { name: 'Editor and guide text size' });
+  await textSize.fill('17');
+  await page.getByRole('button', { name: 'Close dialog' }).click();
+  await expect(page.locator('.guide-description')).toHaveCSS('font-size', '17px');
+  await expect.poll(() => page.evaluate(() => {
+    const monaco = (window as typeof window & { leanlabMonaco?: Monaco }).leanlabMonaco;
+    return monaco?.editor.getEditors()[0]?.getOption(monaco.editor.EditorOption.fontSize);
+  })).toBe(17);
+  await page.getByRole('button', { name: 'Settings', exact: true }).click();
+  await page.getByRole('button', { name: 'light', exact: true }).click();
+  await page.getByRole('button', { name: 'Close dialog' }).click();
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
   console.log('PASS desktop layout: welcome file, collapsible guide/output, keyboard resizing, and saved panel width.');
   await page.close();
 
@@ -112,6 +126,26 @@ try {
   await expect(mobile.getByRole('tabpanel')).toContainText('Program evaluated in Lean WebAssembly');
   assert.ok(requests.some(request => request.endsWith('.pack')), 'Run downloads the real Lean runtime');
   assert.ok(!requests.some(request => /\/editor\//.test(request)), 'Running on mobile still does not need Monaco');
+  await mobile.getByRole('navigation', { name: 'Workspace panels' }).getByRole('button', { name: 'Code', exact: true }).click();
+  await input.fill(advancedExamples[0].code);
+  await mobile.getByLabel('Run options', { exact: true }).click();
+  await mobile.getByRole('button', { name: 'Check file', exact: true }).click();
+  await expect(mobile.locator('.runtime-loading')).toBeHidden({ timeout: 30_000 });
+  if (await mobile.locator('.runtime-error').count()) {
+    // The pinned runtime can exceed WebKit's stack even on small reductions.
+    // Check the specific limitation and recovery; other errors must fail.
+    await expect(mobile.locator('.runtime-error')).toContainText('Browser stack limit reached');
+    await mobile.locator('.runtime-error').getByRole('button', { name: 'Run locally' }).click();
+    await expect(mobile.getByRole('heading', { name: 'Run Lean locally' })).toBeVisible();
+    console.log('KNOWN LIMITATION: this WebKit build exceeds its stack on the list-reduction example; local-run guidance is available.');
+  } else {
+    await expect(mobile.getByRole('tabpanel')).toContainText('File checked successfully.');
+  }
+  await mobile.getByRole('navigation', { name: 'Workspace panels' }).getByRole('button', { name: 'Code', exact: true }).click();
+  await input.fill('example : 2 + 2 = 4 := by rfl');
+  await mobile.getByLabel('Run options', { exact: true }).click();
+  await mobile.getByRole('button', { name: 'Check file', exact: true }).click();
+  await expect(mobile.getByRole('tabpanel')).toContainText('File checked successfully.', { timeout: 60_000 });
   await mobile.getByRole('navigation', { name: 'Workspace panels' }).getByRole('button', { name: 'Code', exact: true }).click();
   await input.fill('def main : IO Unit := IO.println missingValue');
   await mobile.getByRole('button', { name: 'Run program' }).click();

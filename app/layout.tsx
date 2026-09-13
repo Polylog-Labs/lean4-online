@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import "./workspace.css";
-import { desktopMedia } from '../lib/layout';
+import './content.css';
+import { siteURL } from '../lib/site';
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -14,9 +15,8 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-const deploymentHost = process.env.VERCEL_PROJECT_PRODUCTION_URL || process.env.VERCEL_URL;
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || (deploymentHost ? `https://${deploymentHost}` : 'http://localhost:3000')),
+  metadataBase: new URL(siteURL),
   title: "leanlab — Lean 4 online editor",
   description: "Learn Lean 4 in your browser. An online editor with runnable programs, proof checking, guided lessons, and a syntax reference.",
   openGraph: { title: "leanlab — Lean 4 online editor", description: "Run Lean 4 programs, check proofs, and follow guided tutorials.", type: "website", images: [{ url: '/og.png', width: 1733, height: 908, alt: 'leanlab — Lean 4 online editor' }] },
@@ -31,7 +31,7 @@ export default function RootLayout({
   return (
     <html lang="en" data-theme="dark" suppressHydrationWarning>
       <head>
-        <link rel="preload" href="/editor/editor.js" as="script" media={desktopMedia} />
+        <link rel="alternate" type="text/plain" href="/llms.txt" title="Guide for agents" />
       </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}

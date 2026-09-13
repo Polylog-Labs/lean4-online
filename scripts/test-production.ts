@@ -8,7 +8,7 @@ import { build } from 'esbuild';
 import { distributionVersion, type RuntimeManifest } from '../runtime/config';
 
 // Isolate the production preview and asset origin from the development server.
-const url = 'http://127.0.0.1:3100';
+let url: string | undefined;
 const artifactRoot = path.resolve('.cache/runtime-assets', distributionVersion);
 const manifest: RuntimeManifest = JSON.parse(await readFile(path.join(artifactRoot, 'manifest.json'), 'utf8'));
 const artifactNames = new Set([manifest.wasm.file, ...manifest.packs.map(pack => pack.file)]);
@@ -28,15 +28,22 @@ try {
   if (!address || typeof address === 'string') throw new Error('Missing asset test address.');
   const assetOrigin = `http://127.0.0.1:${address.port}`;
   await build({ entryPoints: ['runtime/lean.worker.ts'], outfile: workerFile, bundle: true, format: 'iife', platform: 'browser', target: 'es2022', define: { __LEAN_ASSET_BASE_URL__: JSON.stringify(assetOrigin) } });
-  server = spawn(process.execPath, ['node_modules/next/dist/bin/next', 'start', '--port', '3100'], { stdio: 'inherit' });
+  server = spawn(process.execPath, ['node_modules/next/dist/bin/next', 'start', '--hostname', '127.0.0.1', '--port', '0'], { stdio: ['ignore', 'pipe', 'inherit'] });
+  let serverOutput = '';
+  server.stdout?.on('data', (chunk: Buffer) => {
+    process.stdout.write(chunk);
+    serverOutput = (serverOutput + chunk.toString()).slice(-4096);
+    url ??= serverOutput.match(/http:\/\/127\.0\.0\.1:\d+/)?.[0];
+  });
   server.on('exit', () => { serverExited = true; });
   const deadline = Date.now() + 30_000;
   while (true) {
     if (serverExited) throw new Error('Production server exited before becoming ready.');
-    try { if ((await fetch(url)).ok) break; } catch { /* Starting. */ }
+    try { if (url && (await fetch(url)).ok) break; } catch { /* Starting. */ }
     if (Date.now() > deadline) throw new Error('Production server did not become ready.');
     await new Promise(resolve => setTimeout(resolve, 250));
   }
+  if (!url) throw new Error('Production server did not report its address.');
   const test = spawn(process.execPath, ['--import', 'tsx', 'tests/verify-browser-runtime.ts'], {
     stdio: 'inherit', env: { ...process.env, LEAN_LAB_URL: url, LEAN_LAB_WORKER_URL: '/lean-worker-cors-test.js', LEAN_LAB_EXPECT_ASSET_ORIGIN: assetOrigin },
   });
