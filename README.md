@@ -17,9 +17,13 @@ The first setup downloads a **277 MiB checksum-pinned Lean toolchain archive**. 
 
 All authored application code, setup scripts, and tests use TypeScript. There are no authored `.mjs` files. Generated Emscripten and Monaco assets are JavaScript and are ignored by Git.
 
+The page is prerendered as static content for CDN caching. Desktop browsers preload Monaco and prepare Lean in the background after the editor is ready. Phones and touch devices use a native text editor with a symbol toolbar, indentation, Unicode abbreviations, and diagnostic navigation. They do not download Monaco or start Lean until **Run** or **Check** is pressed. Desktop users can also edit in the native field while Monaco loads.
+
+The WASM heap starts at **64 MiB** and grows as needed, replacing the previous 1 GiB starting allocation. In the Chromium smoke test, the heap reached approximately **133 MiB** when ready and **275 MiB** after running all 46 examples. These measurements exclude JavaScript, library files, and browser overhead; they are not total tab memory. Physical mobile-device testing is still needed to establish practical memory limits.
+
 ## What works
 
-- Monaco editor, Lean syntax highlighting, Unicode symbol suggestions, independent file tabs, and source-position diagnostics.
+- Monaco on desktop and a native text editor on mobile; Unicode input, independent file tabs, and source-position diagnostics.
 - 46 runnable examples: core-library imports, mathematical notation, 13 programming/proof foundations, 25 explorations from the mathematical Top 100 list, the quadratic equation, rings, GF(5), GF(4), Diffie–Hellman, and toy RSA.
 - A compact header and left navigation: Examples, Playground, Learn, Syntax. Collapsible, searchable example groups.
 - A personal My files directory with program/proof starters, create, rename, download, delete, and independent tabs. Copy any example into Playground; closing a tab retains your file.
@@ -43,7 +47,7 @@ The field examples verify the commutative ring axioms and nonzero inverses on al
 
 **Check file** elaborates and checks the current source. Explicit `#eval` commands in that file also execute, following Lean's normal behavior. **Run program** additionally evaluates `main : IO Unit` through an appended `#eval main`. Outputs come from the real Lean WASM compiler; the guide's expected output is separately labeled reference material.
 
-This browser version includes the **Init/core library**, with the matching `.olean`, `.ir`, and `.ir.sig` files. It uses a pinned community Lean **4.33.0-pre** WASM build. Files are independent snippets. This version does not bundle Mathlib, arbitrary Lake packages, a full language server, interactive terminal input, OS subprocesses, or a native compiler. Use a current desktop browser; the runtime requires WebAssembly shared memory and substantial available memory.
+This browser version includes the **Init/core library**, with the matching `.olean`, `.ir`, and `.ir.sig` files. It uses a pinned community Lean **4.33.0-pre** WASM build. Files are independent snippets. This version does not bundle Mathlib, arbitrary Lake packages, a full language server, interactive terminal input, OS subprocesses, or a native compiler. The runtime requires a current browser with WebAssembly shared memory and sufficient available memory. The mobile editor and program execution are tested in WebKit with touch-device emulation; this does not replace testing on physical phones.
 
 The app's **Run locally** guide explains the native path. Install Lean, download a program, and execute it with:
 
@@ -73,7 +77,7 @@ npm run build
 
 `test:lean` executes every example, every syntax snippet, every lesson solution, and every unfinished starter against the actual pinned WASM binary. It also checks negative proofs/type errors. If native Lean is installed, it verifies `lean --run` for every program and the Lake executable workflow.
 
-CI runs on every push and pull request via `.github/workflows/ci.yml`: TypeScript, lint, unit tests, all 46 examples, 71 syntax snippets, and lesson checks in WASM, native programs with Lean 4.33.1, a Lake executable, the production build, and all examples in Chromium. Native Lean is mandatory in CI. The toolchains are cached by version. The browser suite yields between compiles to catch runtime shutdowns between user actions.
+CI runs on every push and pull request via `.github/workflows/ci.yml`: TypeScript, lint, unit tests, all 46 examples, 71 syntax snippets, and lesson checks in WASM, native programs with Lean 4.33.1, a Lake executable, the production build, and all examples in Chromium. Chromium checks direct CORS downloads, live progress, cache reuse, and a WASM heap below 512 MiB for the collection. WebKit checks desktop startup ordering and mobile editing, Unicode input, program execution, and diagnostic navigation. Native Lean is mandatory in CI. The toolchains are cached by version. The browser suite yields between compiles to catch runtime shutdowns between user actions.
 
 To run the production browser smoke test locally after building:
 
@@ -85,11 +89,11 @@ This starts and stops an isolated production server on port 3100, leaving the de
 
 ```sh
 # Linux/CI: install a test browser first
-npx playwright install chromium
+npx playwright install chromium webkit
 npm run test:browser-runtime
 ```
 
-On macOS the test uses installed Google Chrome when available. Set `LEAN_LAB_URL` to test a different local/preview origin. This test exercises the runtime protocol, rather than screenshots or UI automation.
+On macOS the Chromium test uses installed Google Chrome when available. Set `LEAN_LAB_URL` to test a different local/preview origin. `test:browser-runtime` exercises the worker protocol; `test:editor-webkit` tests desktop and mobile editor interactions.
 
 ## Vercel
 

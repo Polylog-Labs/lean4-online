@@ -1,8 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import { headers } from "next/headers";
 import "./globals.css";
-import "../public/editor/editor.css";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -14,17 +12,14 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-export async function generateMetadata(): Promise<Metadata> {
-  const host = (await headers()).get('host') || 'localhost:3000';
-  const origin = new URL(`${host.startsWith('localhost') || host.startsWith('127.0.0.1') ? 'http' : 'https'}://${host}`);
-  return {
-  metadataBase: origin,
+const deploymentHost = process.env.VERCEL_PROJECT_PRODUCTION_URL || process.env.VERCEL_URL;
+export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || (deploymentHost ? `https://${deploymentHost}` : 'http://localhost:3000')),
   title: "leanlab — Lean 4 online editor",
   description: "Learn Lean 4 in your browser. An online editor with runnable programs, proof checking, guided lessons, and a syntax reference.",
-  openGraph: { title: "leanlab — Lean 4 online editor", description: "Run Lean 4 programs, check proofs, and follow guided tutorials.", type: "website", images: [{ url: new URL('/og.png', origin).href, width: 1733, height: 908, alt: 'leanlab — Lean 4 online editor' }] },
-  twitter: { card: "summary_large_image", title: "leanlab — Lean 4 online editor", images: [new URL('/og.png', origin).href] },
-  };
-}
+  openGraph: { title: "leanlab — Lean 4 online editor", description: "Run Lean 4 programs, check proofs, and follow guided tutorials.", type: "website", images: [{ url: '/og.png', width: 1733, height: 908, alt: 'leanlab — Lean 4 online editor' }] },
+  twitter: { card: "summary_large_image", title: "leanlab — Lean 4 online editor", images: ['/og.png'] },
+};
 
 export default function RootLayout({
   children,
@@ -33,7 +28,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" data-theme="dark" suppressHydrationWarning>
-      <head><link rel="preload" href="/editor/editor.js" as="script" /></head>
+      <head>
+        <link rel="preload" href="/editor/editor.js" as="script" media="(min-width: 701px) and (pointer: fine)" />
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >

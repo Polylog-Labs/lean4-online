@@ -31,23 +31,25 @@ try {
   const cases = [...examples.map(example => sourceForRun(example.code, example.mode)), 'example : 2 + 2 = 5 := by rfl'];
   async function exercise(cases: string[]) { return page.evaluate(async ({ codes, workerURL }) => {
     if (!crossOriginIsolated) throw new Error('COOP/COEP isolation is missing.');
-    return new Promise<{ results: { success: boolean; elapsed: number; lines: OutputLine[] }[]; downloads: DownloadProgress[] }>((resolve, reject) => {
+    return new Promise<{ results: { success: boolean; elapsed: number; lines: OutputLine[] }[]; downloads: DownloadProgress[]; memory: number[] }>((resolve, reject) => {
       const worker = new Worker(workerURL);
       const results: { success: boolean; elapsed: number; lines: OutputLine[] }[] = [];
       const downloads: DownloadProgress[] = [];
+      const memory: number[] = [];
       let lines: OutputLine[] = [], id = 0;
       const timer = setTimeout(() => { worker.terminate(); reject(new Error('Browser worker timeout.')); }, 180_000);
       function cleanup() { clearTimeout(timer); worker.terminate(); }
       worker.onerror = event => { cleanup(); reject(new Error(event.message)); };
       worker.onmessage = event => {
         const message = event.data;
+        if (message.memoryBytes) memory.push(message.memoryBytes);
         if (message.type === 'progress' && message.download) downloads.push(message.download);
         if (message.type === 'error') { cleanup(); reject(new Error(message.message)); }
         if (message.type === 'ready') worker.postMessage({ type: 'run', id, code: codes[id] });
         if (message.type === 'output') lines.push({ text: message.text, stream: message.stream });
         if (message.type === 'result') {
           results.push({ success: message.success, elapsed: message.elapsed, lines }); lines = []; id++;
-          if (id === codes.length) { cleanup(); resolve({ results, downloads }); }
+          if (id === codes.length) { cleanup(); resolve({ results, downloads, memory }); }
           // Yield between runs: queued runtime callbacks must not close stdio.
           else setTimeout(() => worker.postMessage({ type: 'run', id, code: codes[id] }), 40);
         }
@@ -63,6 +65,9 @@ try {
     assert.equal(result.output.map(line => line.text).join('\n').trim() || 'File checked successfully.', example.expected, `${example.id} browser output`);
   }
   assert.equal(parsed.at(-1)!.success, false);
+  assert.ok(first.memory.length > examples.length, 'Runtime reports its heap size after initialization and each run');
+  assert.ok(Math.max(...first.memory) < 512 * 1024 * 1024, 'The example collection must run with a WASM heap below 512 MiB');
+  console.log(`WASM heap: ${(first.memory[0] / 1024 / 1024).toFixed(0)} MiB ready; ${(Math.max(...first.memory) / 1024 / 1024).toFixed(0)} MiB after all examples.`);
   const last = first.downloads.at(-1)!;
   assert.equal(last.received, last.total);
   assert.equal(last.cached, 0);

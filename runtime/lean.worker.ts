@@ -2,13 +2,14 @@
 // The boot sequence follows cauli/lean4-wasm-in-browser (Apache-2.0).
 // See third_party/lean-wasm for attribution and the exact pinned artifact.
 import release from './release.json';
-import { distributionVersion, runtimePath, type Artifact, type DownloadProgress, type RuntimeManifest } from './config';
+import { distributionVersion, initialMemoryBytes, runtimePath, type Artifact, type DownloadProgress, type RuntimeManifest } from './config';
 import { readDownload } from './download';
 
 declare const __LEAN_ASSET_BASE_URL__: string;
 
 declare const self: DedicatedWorkerGlobalScope & { Module: LeanModule; runtimeKeepalivePush(): void };
 interface LeanModule {
+  wasmMemory: WebAssembly.Memory;
   FS: { mkdir(path: string): void; writeFile(path: string, data: Uint8Array): void; chdir(path: string): void };
   ENV: Record<string, string>;
   stringToNewUTF8(value: string): number;
@@ -32,7 +33,14 @@ let runId: number | null = null;
 let outputBytes = 0;
 let truncated = false;
 function progress(message: string) { self.postMessage({ type: 'progress', message }); }
-function downloadProgress() { self.postMessage({ type: 'progress', message: 'Downloading Lean', download: { ...download } }); }
+let lastDownloadUpdate = 0;
+function downloadProgress() {
+  const now = performance.now();
+  const loaded = download.received + download.cached;
+  if (loaded > 0 && loaded < download.total && now - lastDownloadUpdate < 100) return;
+  lastDownloadUpdate = now;
+  self.postMessage({ type: 'progress', message: 'Downloading Lean', download: { ...download } });
+}
 function output(stream: 'stdout' | 'stderr', text: string) {
   const moduleProgress = /\[DEBUG:PROGRESS\]\s*(\d+)\/(\d+)/.exec(text);
   if (moduleProgress && runId === null) { progress(`Preparing Lean · ${moduleProgress[1]} / ${moduleProgress[2]} modules`); return; }
@@ -104,8 +112,8 @@ async function initialize() {
   try { await new Promise<void>((resolve, reject) => {
     const config = {
       noInitialRun: true,
-      INITIAL_MEMORY: 1024 * 1024 * 1024,
-      wasmMemory: new WebAssembly.Memory({ initial: 16384, maximum: 65536, shared: true }),
+      INITIAL_MEMORY: initialMemoryBytes,
+      wasmMemory: new WebAssembly.Memory({ initial: initialMemoryBytes / 65536, maximum: 65536, shared: true }),
       locateFile: (file: string) => file === 'lean.wasm' ? wasmURL : `${base}/${file}`,
       mainScriptUrlOrBlob: `${base}/lean.js`,
       print: (text: string) => output('stdout', text),
@@ -145,7 +153,7 @@ async function initialize() {
   progress('Preparing Lean · the first import takes a moment');
   if (!compile('#check Nat')) throw new Error('Lean could not load its core library.');
   initialized = true;
-  self.postMessage({ type: 'ready', version: manifest.version });
+  self.postMessage({ type: 'ready', version: manifest.version, memoryBytes: m.wasmMemory.buffer.byteLength });
 }
 self.onmessage = async (event: MessageEvent<{ type: string; id: number; code: string }>) => {
   const message = event.data;
@@ -156,7 +164,7 @@ self.onmessage = async (event: MessageEvent<{ type: string; id: number; code: st
       runId = message.id; outputBytes = 0; truncated = false;
       const start = performance.now();
       const success = compile(message.code);
-      self.postMessage({ type: 'result', id: runId, success, elapsed: performance.now() - start });
+      self.postMessage({ type: 'result', id: runId, success, elapsed: performance.now() - start, memoryBytes: self.Module.wasmMemory.buffer.byteLength });
       runId = null;
     }
   } catch (error) {

@@ -3,6 +3,7 @@ import path from 'node:path';
 import vm from 'node:vm';
 import { createRequire } from 'node:module';
 import type { OutputLine } from '../lib/lean';
+import { initialMemoryBytes } from '../runtime/config';
 
 // Emscripten's exported C API is the boundary to the untyped upstream glue.
 interface Module {
@@ -22,7 +23,7 @@ export async function bootLean(root: string) {
   let resolve!: () => void, reject!: (error: Error) => void;
   const ready = new Promise<void>((res, rej) => { resolve = res; reject = rej; });
   const config = {
-    noInitialRun: true, INITIAL_MEMORY: 1024 * 1024 * 1024,
+    noInitialRun: true, INITIAL_MEMORY: initialMemoryBytes,
     locateFile: (file: string) => path.join(root, 'runtime/slim', file),
     print: (text: string) => onLine('stdout', text), printErr: (text: string) => onLine('stderr', text),
     preRun: [() => {
