@@ -2,6 +2,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { finishRun, type OutputLine, type RunResult } from './lean';
 import type { DownloadProgress } from '../runtime/config';
+import { usesWebKit } from './browser-compatibility';
 
 type State = 'idle' | 'loading' | 'ready' | 'running' | 'error';
 export function useLean(editorReady = false) {
@@ -10,6 +11,7 @@ export function useLean(editorReady = false) {
   const [download, setDownload] = useState<DownloadProgress | null>(null);
   const [version, setVersion] = useState('Lean 4');
   const worker = useRef<Worker | null>(null);
+  const runtimeCache = useRef<Cache | null>(null);
   const init = useRef<{ promise: Promise<void>; resolve(): void; reject(error: Error): void } | null>(null);
   const pending = useRef<{ id: number; lines: OutputLine[]; resolve(result: RunResult): void; reject(error: Error): void } | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -39,18 +41,34 @@ export function useLean(editorReady = false) {
     init.current = { promise, resolve, reject };
     try {
       const instance = new Worker('/lean-worker.js'); worker.current = instance;
-      instance.onerror = () => reset('The Lean worker stopped unexpectedly. Try running again.', true);
-      instance.onmessage = (event) => {
+      instance.onerror = () => { if (worker.current === instance) reset('The Lean worker stopped unexpectedly. Try running again.', true); };
+      let recycleWorker = false;
+      instance.onmessage = async (event) => {
+        if (worker.current !== instance) return;
         const message = event.data;
         if (message.type === 'progress') { setProgress(message.message); setDownload(message.download ?? null); }
         if (message.type === 'ready') {
+          if (usesWebKit(navigator.userAgent) && message.cacheName) {
+            try {
+              // WebKit can discard worker-owned Cache Storage when its last
+              // worker closes. Keep a page-owned handle across compiler runs.
+              runtimeCache.current = await caches.open(message.cacheName);
+              recycleWorker = true;
+            } catch { /* Retain the compiler when cached downloads are unavailable. */ }
+            if (worker.current !== instance) return;
+          }
           clearTimer(); setState('ready'); setProgress('Lean is ready'); setDownload(null); setVersion(`Lean ${message.version}`); init.current?.resolve();
         }
         if (message.type === 'output' && message.id === pending.current?.id) pending.current?.lines.push({ stream: message.stream, text: message.text });
         if (message.type === 'result' && message.id === pending.current?.id) {
           clearTimer();
           const current = pending.current!; pending.current = null;
-          setState('ready'); setProgress('Lean is ready');
+          if (recycleWorker) {
+            // WebKit can overflow on a later compilation even when that file
+            // passes in a fresh worker. Reuse downloaded bytes, not this heap.
+            instance.terminate(); worker.current = null; init.current = null;
+            setState('idle'); setProgress('Ready for next run');
+          } else { setState('ready'); setProgress('Lean is ready'); }
           current.resolve(finishRun(message.success, message.elapsed, current.lines));
         }
         if (message.type === 'error') reset(message.message, true);
@@ -74,6 +92,9 @@ export function useLean(editorReady = false) {
   }, [reset, start]);
   useEffect(() => {
     if (!editorReady || backgroundStarted.current) return;
+    // In WebKit, defer the compiler's download and memory allocation until a
+    // deliberate Run/Check. Reading the compatibility notice should be free.
+    if (usesWebKit(navigator.userAgent)) return;
     const load = () => {
       backgroundStarted.current = true;
       const startedGeneration = generation.current;

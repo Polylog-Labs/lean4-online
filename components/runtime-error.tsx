@@ -1,11 +1,12 @@
 import { ArrowRight, CircleAlert } from 'lucide-react';
+import { isStackLimitError } from '../lib/browser-compatibility';
 
 export function RuntimeError({ message, onRetry, onRunLocally }: {
   message: string;
   onRetry(): void;
   onRunLocally(): void;
 }) {
-  const stackLimit = /maximum call stack size exceeded|stack overflow|too much recursion/i.test(message);
+  const stackLimit = isStackLimitError(message);
   return <div className="runtime-error">
     <CircleAlert size={18} />
     <div>

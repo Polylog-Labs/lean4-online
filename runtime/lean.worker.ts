@@ -28,6 +28,8 @@ interface LeanModule {
 const base = runtimePath;
 const assetBase = __LEAN_ASSET_BASE_URL__ || base;
 const download: DownloadProgress = { received: 0, cached: 0, total: 0 };
+const cacheName = `lean-lab-${distributionVersion}`;
+let cacheAvailable = true;
 let initialized = false;
 let runId: number | null = null;
 let outputBytes = 0;
@@ -39,7 +41,7 @@ function downloadProgress() {
   const loaded = download.received + download.cached;
   if (loaded > 0 && loaded < download.total && now - lastDownloadUpdate < 100) return;
   lastDownloadUpdate = now;
-  self.postMessage({ type: 'progress', message: 'Downloading Lean', download: { ...download } });
+  self.postMessage({ type: 'progress', message: download.cached > 0 && download.received === 0 ? 'Loading cached Lean compiler' : 'Downloading Lean compiler', download: { ...download } });
 }
 function output(stream: 'stdout' | 'stderr', text: string) {
   const moduleProgress = /\[DEBUG:PROGRESS\]\s*(\d+)\/(\d+)/.exec(text);
@@ -56,20 +58,23 @@ function output(stream: 'stdout' | 'stderr', text: string) {
 }
 async function downloadArtifact(artifact: Artifact): Promise<Uint8Array<ArrayBuffer>> {
   const url = `${assetBase}/${artifact.file}`;
+  // Resolve explicitly: WebKit's Cache API in a worker can reject relative
+  // request URLs even though fetch resolves them against the worker URL.
+  const cacheKey = new URL(artifact.sha256, self.location.href).href;
   let cache: Cache | undefined;
   try {
-    cache = await caches.open(`lean-lab-${distributionVersion}`);
-    const hit = await cache.match(artifact.sha256);
+    cache = await caches.open(cacheName);
+    const hit = await cache.match(cacheKey);
     if (hit) {
       try {
         const data = await readDownload(hit, artifact, () => {});
         download.cached += data.byteLength; downloadProgress(); return data;
-      } catch { await cache.delete(artifact.sha256); }
+      } catch { await cache.delete(cacheKey); }
     }
-  } catch { /* Browser storage can be unavailable; execution still works. */ }
+  } catch { cacheAvailable = false; }
   const response = await fetch(url, { credentials: 'omit' });
   const data = await readDownload(response, artifact, bytes => { download.received += bytes; downloadProgress(); });
-  try { await cache?.put(artifact.sha256, new Response(data)); } catch { /* Cache quota is optional. */ }
+  try { await cache?.put(cacheKey, new Response(data)); } catch { cacheAvailable = false; }
   return data;
 }
 function mkdir(path: string) {
@@ -153,7 +158,7 @@ async function initialize() {
   progress('Preparing Lean · the first import takes a moment');
   if (!compile('#check Nat')) throw new Error('Lean could not load its core library.');
   initialized = true;
-  self.postMessage({ type: 'ready', version: manifest.version, memoryBytes: m.wasmMemory.buffer.byteLength });
+  self.postMessage({ type: 'ready', version: manifest.version, memoryBytes: m.wasmMemory.buffer.byteLength, cacheName: cacheAvailable ? cacheName : null });
 }
 self.onmessage = async (event: MessageEvent<{ type: string; id: number; code: string }>) => {
   const message = event.data;

@@ -133,4 +133,28 @@ try {
   await page.getByRole('link', { name: 'Open exercise in editor' }).click();
   await expect(page.locator('.guide-panel h2')).toHaveText('Prove 2 + 2 = 4');
   console.log('PASS public content: no-JavaScript examples/lessons, mobile scrolling, agent text, sitemap, 404s, and links into the editor.');
+  if (!process.argv.includes('--webkit')) {
+    const mobile = await browser.newPage({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
+    await mobile.goto(origin);
+    await expect(mobile.getByLabel('Switch file', { exact: true })).toContainText('Welcome.lean');
+    await expect(mobile.locator('.safari-filter'), 'Chromium does not show Safari-specific notices').toHaveCount(0);
+    await mobile.getByRole('button', { name: 'Open navigation', exact: true }).click();
+    const list = mobile.locator('.explorer-scroll');
+    const dimensions = await list.evaluate(node => ({ client: node.clientHeight, scroll: node.scrollHeight }));
+    assert.ok(dimensions.client > 100 && dimensions.scroll > dimensions.client, 'The example list has a bounded scroll area');
+    const bounds = (await list.boundingBox())!;
+    const cdp = await mobile.context().newCDPSession(mobile);
+    const x = bounds.x + bounds.width / 2, y = bounds.y + bounds.height - 20;
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x, y }] });
+    for (let step = 1; step <= 10; step++) {
+      await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x, y: y - step * Math.min(20, (bounds.height - 40) / 10) }] });
+      await mobile.waitForTimeout(20);
+    }
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+    await expect.poll(() => list.evaluate(node => node.scrollTop)).toBeGreaterThan(40);
+    await expect(mobile.getByRole('dialog', { name: 'Navigation' })).toBeVisible();
+    assert.equal(await mobile.locator('.file-picker > summary').textContent(), 'λWelcome.lean', 'A drag does not select an example');
+    await mobile.close();
+    console.log('PASS mobile touch: a finger drag scrolls the examples without selecting a file.');
+  }
 } finally { await browser.close(); }

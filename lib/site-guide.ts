@@ -1,5 +1,6 @@
 import { examples, lessons, syntax } from './content';
 import { siteURL } from './site';
+import { safariLimitedExamples, safariLimitedLessons } from './browser-compatibility';
 
 export const siteGuide = `# leanlab
 
@@ -17,9 +18,9 @@ Brand: leanlab. Independent learning tool; not the official Lean project.
 - Check file checks declarations and executes explicit #eval commands. Run program additionally evaluates main : IO Unit using #eval main.
 - The guide's expected output is reference text. Only the result of an actual run is evidence that a user's edited file checked successfully.
 - sorry admits a statement with a warning. An incomplete proof does not complete a lesson. The Sorry.lean example intentionally demonstrates this warning.
-- The full example collection is checked in Chromium. Some examples exceed the pinned compiler’s call-stack limit in WebKit; complete Safari/iPhone runtime compatibility is not established. Use Run locally when that limit is reported.
-- Desktop uses Monaco. Mobile uses CodeMirror with syntax highlighting, Unicode input, and separate Code, Output, and Guide panels.
-- The first Lean setup downloads about 45.9 MB of compressed compiler/library data. Downloads show progress and are cached. Mobile starts the compiler on Run or Check.
+- The full example collection is checked in Chromium. Some examples exceed the pinned compiler’s call-stack limit in WebKit; complete Safari/iPhone runtime compatibility is not established. Affected examples and exercises have Safari notices and an optional Hide Safari limitations filter. Use Run locally if execution fails; unmarked files are not guaranteed to work.
+- Desktop uses Monaco. Mobile uses CodeMirror with syntax highlighting, Unicode input, and an output panel docked below the code, and a separate Guide view. Choose Code or close Output to expand the editor. Normal mobile visits open Welcome.lean; explicit shared-program and content links take precedence.
+- The first Lean setup downloads about 45.9 MB of compressed compiler/library data. Downloads show progress and are cached. Mobile and desktop Safari start the compiler on Run or Check. Safari releases the worker after a run when its downloads are cached, then initializes a fresh worker from the cache for the next run.
 - There is no account or database. Files and lesson progress are saved in local browser storage. Closing a tab keeps a personal file; Delete removes it.
 
 ## How to use the site
@@ -82,11 +83,13 @@ export function fullSiteGuide() {
     `${siteURL}/examples/${example.id}`, example.description,
     example.incomplete ? 'Intentionally incomplete: the sorry warning is expected.' : '', leanBlock(example.code),
     `Expected output (reference only):\n${example.expected}`,
+    safariLimitedExamples.has(example.id) ? 'Safari: this example has a known compiler stack limitation. Read it here or run it locally.' : '',
     ...example.concepts.map(concept => `${concept.token}: ${concept.explanation}`),
     example.history ? `${example.history.milestone}\n${example.history.fact}\nScope: ${example.history.scope}\nSource: ${example.history.source}` : '',
     `Exercise: ${example.challenge}`, ...(example.references ?? []).map(reference => `${reference.title}: ${reference.url}`),
   ].filter(Boolean).join('\n\n')), '## Lessons', ...lessons.map(lesson => [
     `### ${lesson.title} (${lesson.id})`, `Track: ${lesson.track}. Mode: ${lesson.mode ?? 'check'}.`, `${siteURL}/learn/${lesson.id}`,
+    ...(safariLimitedLessons.has(lesson.id) ? ['Safari: this exercise has a known compiler stack limitation. Read it here or run it locally.'] : []),
     ...lesson.paragraphs, `Exercise: ${lesson.task}`, 'Starter:', leanBlock(lesson.starter), `Hint: ${lesson.hint}`, 'Solution:', leanBlock(lesson.solution),
   ].join('\n\n')), '## Syntax', ...syntax.map(item => `### ${item.title}\n\n${item.token}\n\n${item.explanation}\n${item.input ? `Input: ${item.input}\n` : ''}${leanBlock(item.code)}`)].join('\n\n');
 }

@@ -4,6 +4,9 @@ import type { Monaco } from '@monaco-editor/react';
 import type { editor } from 'monaco-editor';
 import { encodeSnippet } from '../lib/lean';
 import { advancedExamples } from '../lib/advanced-examples';
+import { examples, lessons } from '../lib/content';
+import { sourceForRun } from '../lib/lean';
+import type { DownloadProgress } from '../runtime/config';
 
 const url = process.env.LEAN_LAB_URL || 'http://localhost:3000';
 const browser = await webkit.launch();
@@ -11,7 +14,7 @@ try {
   const page = await browser.newPage();
   await page.addInitScript({ content: `
     globalThis.__name = (value) => value;
-    window.leanStartup = [];
+    window.leanStartup = []; window.leanDownloads = [];
     const NativeWorker = window.Worker;
     window.Worker = class extends NativeWorker {
       constructor(url, options) {
@@ -19,6 +22,7 @@ try {
           window.leanStartup.push(!!window.leanlabMonaco?.editor.getModels().some(model => model.getLanguageId() === 'lean4'));
         }
         super(url, options);
+        if (String(url) === '/lean-worker.js') this.addEventListener('message', event => { if (event.data.download) window.leanDownloads.push(event.data.download); });
       }
     };
   ` });
@@ -31,11 +35,52 @@ try {
     return monaco?.editor.getModels().some((model: editor.ITextModel) => model.getLanguageId() === 'lean4');
   }, undefined, { timeout: 15_000 });
   const editorMs = Date.now() - start;
-  await page.waitForFunction('window.leanStartup.length > 0');
-  assert.deepEqual(await page.evaluate('window.leanStartup'), [true], 'Background Lean starts only after the desktop editor is ready');
+  await page.waitForTimeout(3000);
+  assert.deepEqual(await page.evaluate('window.leanStartup'), [], 'Safari defers the compiler until Run or Check');
   assert.deepEqual(errors, [], 'WebKit editor startup errors');
-  console.log(`PASS WebKit desktop: editor ready in ${editorMs} ms before background Lean startup.`);
+  console.log(`PASS WebKit desktop: editor ready in ${editorMs} ms; no background compiler download.`);
   await expect(page.getByRole('tab', { name: 'λ Welcome.lean' })).toBeVisible();
+  await expect(page.getByRole('note', { name: 'Lean compiler download' })).toContainText('First use downloads the Lean compiler (~46 MB)');
+  await expect(page.getByRole('note', { name: 'Lean compiler download' })).toContainText('your code is not uploaded');
+  await expect(page.getByRole('note', { name: 'Safari compatibility' })).toHaveCount(0);
+  // Exercise the actual hook repeatedly: Safari releases each worker and
+  // initializes the next one from Cache Storage, avoiding warm-worker failures.
+  const io = lessons.find(item => item.id === 'io')!;
+  const cases = [
+    ...['welcome', 'functions', 'two-plus-two', 'curry-howard'].map(id => {
+      const item = examples.find(example => example.id === id)!;
+      return { id, code: sourceForRun(item.code, item.mode), expected: item.expected };
+    }),
+    { id: 'io-lesson', code: sourceForRun(io.solution, 'program', io.validation), expected: 'Hello, Lean!' },
+  ];
+  const packs: string[] = [];
+  page.on('request', request => { if (request.url().endsWith('.pack')) packs.push(request.url()); });
+  let firstDownloads = 0;
+  for (const [index, item] of [...cases, ...cases].entries()) {
+    await page.evaluate(code => {
+      const monaco = (window as typeof window & { leanlabMonaco?: Monaco }).leanlabMonaco!;
+      monaco.editor.getModels().find((model: editor.ITextModel) => model.getLanguageId() === 'lean4')!.setValue(code);
+    }, item.code);
+    await page.getByLabel('Run options', { exact: true }).click();
+    await page.getByRole('button', { name: 'Check file', exact: true }).click();
+    await expect(page.locator('.execution-footer')).toBeVisible({ timeout: 180_000 });
+    assert.equal((await page.locator('.actual-output > pre').allTextContents()).join('\n').trim() || 'File checked successfully.', item.expected, item.id);
+    assert.equal(await page.evaluate('window.leanStartup.length'), index + 1, 'Every Safari run starts a fresh worker');
+    if (index === 0) { firstDownloads = packs.length; assert.ok(firstDownloads > 0); }
+    else {
+      assert.equal(packs.length, firstDownloads, 'Later runs reuse cached packs without network requests');
+      const download = await page.evaluate<DownloadProgress>('window.leanDownloads.at(-1)');
+      assert.equal(download.received, 0);
+      assert.equal(download.cached, download.total);
+    }
+  }
+  // Restore the initial editor state before testing its layout controls.
+  await page.evaluate(code => {
+    const monaco = (window as typeof window & { leanlabMonaco?: Monaco }).leanlabMonaco!;
+    monaco.editor.getModels().find((model: editor.ITextModel) => model.getLanguageId() === 'lean4')!.setValue(code);
+  }, examples[0].code);
+  await page.getByRole('button', { name: 'Collapse output', exact: true }).click();
+  console.log('PASS WebKit: introductions and IO lesson run repeatedly with fresh workers and cached downloads.');
   await expect(page.locator('.guide-panel')).toBeHidden();
   await page.getByRole('button', { name: 'Toggle Guide', exact: true }).click();
   await expect(page.locator('.guide-panel')).toBeVisible();
@@ -67,6 +112,26 @@ try {
   await page.getByRole('button', { name: 'Close dialog' }).click();
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
   console.log('PASS desktop layout: welcome file, collapsible guide/output, keyboard resizing, and saved panel width.');
+  const search = page.getByRole('textbox', { name: 'Search examples, lessons, or syntax' });
+  await search.fill('SHA-256');
+  const sha = page.locator('.explorer').getByRole('button', { name: /SHA-256/ });
+  await expect(sha.getByLabel('Known Safari compiler limitation')).toBeVisible();
+  await sha.click();
+  const notice = page.getByRole('note', { name: 'Safari compatibility' });
+  await expect(notice).toContainText('This example may fail in Safari.');
+  await expect(page.getByRole('button', { name: 'Run program', exact: true })).toBeEnabled();
+  await notice.locator('summary').click();
+  await expect(notice).toContainText('WebKit’s stack limit');
+  await page.locator('.explorer').getByLabel('Hide Safari limitations').check();
+  await expect(sha).toHaveCount(0);
+  await expect(page.getByRole('tab', { name: 'λ SHA256.lean' })).toHaveAttribute('aria-selected', 'true');
+  await page.getByRole('navigation', { name: 'Main navigation' }).getByRole('button', { name: 'Learn', exact: true }).click();
+  await expect(page.locator('.lesson-card').filter({ hasText: 'Hash a message with SHA-256' })).toHaveCount(0);
+  await expect(page.locator('.lesson-card').filter({ hasText: 'Programs and IO' })).toBeVisible();
+  await expect(page.locator('.lesson-card').filter({ hasText: 'Accumulators and invariants' })).toBeVisible();
+  await page.locator('.learning-page').getByLabel('Hide Safari limitations').uncheck();
+  await expect(page.locator('.lesson-card').filter({ hasText: 'Hash a message with SHA-256' })).toContainText('Safari limitation');
+  console.log('PASS Safari notices and filtering: limitations remain runnable; active files are preserved; supported exercises remain visible.');
   await page.close();
 
   const mobile = await browser.newPage({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
@@ -124,6 +189,10 @@ try {
   await mobile.getByRole('button', { name: 'Run program' }).click();
   await expect(mobile.getByRole('tabpanel')).toContainText('Hello from mobile', { timeout: 180_000 });
   await expect(mobile.getByRole('tabpanel')).toContainText('Program evaluated in Lean WebAssembly');
+  await expect(input).toBeVisible();
+  const sourceBounds = await mobile.locator('.code-area').boundingBox();
+  const initialOutputBounds = await mobile.getByRole('region', { name: 'Lean execution results' }).boundingBox();
+  assert.ok(sourceBounds && initialOutputBounds && initialOutputBounds.y >= sourceBounds.y + sourceBounds.height, 'Mobile output is docked below visible code');
   assert.ok(requests.some(request => request.endsWith('.pack')), 'Run downloads the real Lean runtime');
   assert.ok(!requests.some(request => /\/editor\//.test(request)), 'Running on mobile still does not need Monaco');
   await mobile.getByRole('navigation', { name: 'Workspace panels' }).getByRole('button', { name: 'Code', exact: true }).click();
@@ -159,7 +228,9 @@ try {
     await mobile.getByRole('navigation', { name: 'Workspace panels' }).getByRole('button', { name: /Output/ }).click();
     const outputBounds = await mobile.getByRole('region', { name: 'Lean execution results' }).boundingBox();
     const editorBounds = await mobile.getByRole('region', { name: 'Editor workspace' }).boundingBox();
+    const codeBounds = await mobile.locator('.code-area').boundingBox();
     assert.ok(outputBounds && editorBounds && outputBounds.y + outputBounds.height <= editorBounds.y + editorBounds.height, `Output remains inside the editor at ${viewport.width} × ${viewport.height}`);
+    assert.ok(codeBounds && codeBounds.height >= 80 && outputBounds.y >= codeBounds.y + codeBounds.height, `Code stays above output at ${viewport.width} × ${viewport.height}`);
   }
   await mobile.getByRole('navigation', { name: 'Workspace panels' }).getByRole('button', { name: 'Guide', exact: true }).click();
   await expect(mobile.locator('.guide-panel')).toBeVisible();
@@ -177,6 +248,34 @@ try {
   await expect(mobile.locator('.code-area')).toHaveCSS('opacity', '1');
   await expect(mobile.locator('.lean-keyword').first()).toHaveCSS('color', 'rgb(196, 164, 237)');
   await expect(mobile.getByRole('navigation', { name: 'Workspace panels' }).getByRole('button', { name: 'Code', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  await mobile.goto(new URL('/examples/sha256', url).href);
+  await mobile.getByRole('link', { name: 'Open SHA256.lean in editor' }).click();
+  const mobileNotice = mobile.getByRole('note', { name: 'Safari compatibility' });
+  await expect(mobileNotice).toBeVisible();
+  await mobile.setViewportSize({ width: 320, height: 568 });
+  await expect(mobile.getByRole('note', { name: 'Lean compiler download' })).toContainText('WebAssembly');
+  await mobile.getByRole('button', { name: 'Dismiss compiler information' }).click();
+  await mobileNotice.locator('summary').click();
+  assert.ok((await mobile.locator('.code-area').boundingBox())!.height > 100, 'Expanded compatibility details leave room for mobile code');
+  assert.ok(await mobile.evaluate(() => document.documentElement.scrollWidth <= innerWidth), 'Safari notice fits a narrow phone');
+  await mobileNotice.getByRole('button', { name: 'Run locally', exact: true }).click();
+  await expect(mobile.getByRole('heading', { name: 'Run Lean locally' })).toBeVisible();
+  await mobile.getByRole('navigation', { name: 'Workspace panels' }).getByRole('button', { name: 'Code', exact: true }).click();
+  await expect(mobile.getByRole('button', { name: 'Run program', exact: true })).toBeEnabled();
+  await mobile.screenshot({ path: '/tmp/leanlab-safari-mobile.png' });
+  // A plain mobile visit opens Welcome; saved personal files remain available.
+  await mobile.goto(new URL('/examples', url).href);
+  await mobile.goto(url);
+  await expect(mobile.getByLabel('Switch file', { exact: true })).toContainText('Welcome.lean');
+  await expect(mobile.locator('.code-area')).toBeVisible();
+  const saved = await mobile.evaluate(() => JSON.parse(localStorage.getItem('lean-lab-workspace-v2')!));
+  assert.ok(saved.files.some((file: { title: string }) => file.title === 'MobileTest.lean'), 'Opening Welcome preserves personal files');
+  await mobile.getByRole('button', { name: 'Open navigation', exact: true }).click();
+  const mobileList = mobile.locator('.explorer-scroll');
+  await expect(mobileList).toHaveCSS('touch-action', 'pan-y');
+  const scrollSpace = await mobileList.evaluate(node => ({ height: node.clientHeight, content: node.scrollHeight }));
+  assert.ok(scrollSpace.height > 50 && scrollSpace.content > scrollSpace.height, 'WebKit constrains the example list so it can scroll');
+  await mobile.getByRole('button', { name: 'Close navigation', exact: true }).click();
   assert.deepEqual(mobileErrors, [], 'WebKit mobile errors');
   console.log('PASS WebKit mobile: highlighting, Unicode, indentation, no editor/runtime download before Run, real Lean output, diagnostic navigation, mobile panels, and the Learn introduction.');
 } finally { await browser.close(); }

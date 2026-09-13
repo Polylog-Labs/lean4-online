@@ -5,9 +5,31 @@
 .app-shell .rail-button { height: 53px; gap: 5px; }
 .app-shell .rail-button span { font-size: 8px; }
 .app-shell .rail-button:nth-child(3) { margin-top: 5px; }
-.app-shell .explorer { position: static; width: var(--sidebar-width); min-width: var(--sidebar-width); box-shadow: none; border-right: 0; }
+.app-shell .explorer { position: static; width: var(--sidebar-width); min-width: var(--sidebar-width); min-height: 0; overflow: hidden; box-shadow: none; border-right: 0; }
+.explorer-scroll { min-height: 0; overflow-x: hidden; overscroll-behavior-y: contain; touch-action: pan-y; -webkit-overflow-scrolling: touch; }
+.explorer-heading, .search-field, .safari-filter, .sidebar-bridge { flex-shrink: 0; }
 .explorer-heading { height: 42px; padding: 8px 12px; letter-spacing: .8px; }
 .search-field { margin: 4px 10px 16px; }
+.safari-filter { margin: 0 12px 14px; color: var(--muted); font-size: 11px; line-height: 1.5; }
+.safari-filter p { margin: 0 0 7px; }
+.safari-filter label { display: flex; align-items: center; gap: 7px; cursor: pointer; min-height: 30px; }
+.safari-filter input { accent-color: var(--accent); flex-shrink: 0; }
+.learning-page > .safari-filter { margin: 12px 0; }
+.compiler-info { display: flex; gap: 12px; align-items: flex-start; padding: 10px 14px; background: var(--accent-faint); border-bottom: 1px solid var(--border); flex-shrink: 0; font-size: 12px; }
+.compiler-info > div { flex: 1; min-width: 0; }
+.compiler-info strong { font-weight: 500; }
+.compiler-info p { margin: 4px 0 0; color: var(--muted); line-height: 1.6; }
+.compiler-info .icon-button { flex-shrink: 0; }
+.safari-badge { display: inline-flex; flex-shrink: 0; color: var(--amber); }
+.example-item .safari-badge { margin-left: auto; }
+.safari-notice { display: flex; align-items: flex-start; gap: 8px; padding: 8px 12px; background: var(--sidebar); border-bottom: 1px solid var(--border); font-size: 11px; flex-shrink: 0; }
+.safari-notice > svg { flex-shrink: 0; color: var(--amber); margin-top: 2px; }
+.safari-notice details { flex: 1; min-width: 0; }
+.safari-notice summary { cursor: pointer; line-height: 1.7; }
+.safari-notice p { margin: 6px 0 0; color: var(--muted); line-height: 1.6; }
+.safari-notice > button { white-space: nowrap; flex-shrink: 0; font-size: 11px; }
+.safari-guide-note { color: var(--muted); border-left: 2px solid var(--amber); padding-left: 10px; line-height: 1.7; font-size: var(--reading-size); }
+.lesson-safari-note { display: flex; align-items: center; gap: 6px; color: var(--muted); font-size: 11px; margin-top: 8px; }
 .app-shell .example-item { font-size: 11px; padding: 7px 8px 7px 20px; }
 .example-group { margin-bottom: 9px; }
 .sidebar-bridge { padding: 10px; margin: 10px; }
@@ -91,7 +113,7 @@
 .mobile-editor .symbol-toolbar { padding: 0 6px; }
 .mobile-editor .symbol-toolbar button { min-width: 40px; height: 40px; font-size: 18px; }
 
-/* Phones and touch devices show one workspace panel at a time. */
+/* Phones and touch devices dock output below code and open Guide separately. */
 @media (max-width: 900px), (pointer: coarse) {
   html:has(.app-shell), body:has(.app-shell) { overflow: hidden; }
   .app-shell { position: fixed; width: 100%; top: var(--viewport-top, 0px); height: var(--viewport-height, 100dvh); min-height: 0; }
@@ -101,15 +123,13 @@
   .navigation-toggle { display: flex; width: 38px; height: 44px; }
   .navigation-pane { display: none; }
   .drawer-open .navigation-pane { display: flex; position: absolute; top: 46px; left: 0; bottom: 0; width: min(340px, 92vw); z-index: 51; flex-direction: column; background: var(--sidebar); border-right: 1px solid var(--border-strong); box-shadow: 8px 0 30px #0003; }
-  .drawer-backdrop { display: block; position: absolute; inset: 46px 0 0; z-index: 50; background: #0006; }
-  .app-shell .activity-rail { width: 100%; padding: 8px; border: 0; border-bottom: 1px solid var(--border); display: flex; flex-direction: row; align-items: stretch; gap: 8px; }
-  .app-shell .activity-rail > div:first-child { display: grid; grid-template-columns: 1fr 1fr; gap: 3px; }
-  .app-shell .activity-rail > div:last-child { width: 52px; }
+  .drawer-backdrop { display: block; position: absolute; inset: 46px 0 0 min(340px, 92vw); z-index: 50; background: #0006; }
+  .app-shell .activity-rail { width: 100%; padding: 6px 8px; border: 0; border-bottom: 1px solid var(--border); display: flex; flex-direction: column; align-items: stretch; gap: 0; flex-shrink: 0; }
+  .app-shell .activity-rail > div { display: flex; flex-direction: column; width: 100%; }
   .app-shell .rail-button { flex-direction: row; justify-content: flex-start; padding: 10px; gap: 8px; height: 44px; margin: 0; }
   .app-shell .rail-button span { font-size: 11px; }
   .app-shell .rail-button svg { width: 17px; height: 17px; }
-  .app-shell .activity-rail > div:last-child .rail-button { flex-direction: column; justify-content: center; height: 100%; padding: 6px; }
-  .app-shell .activity-rail > div:last-child .rail-button span { font-size: 9px; }
+  .app-shell .rail-button:nth-child(3) { margin-top: 0; }
   .app-shell .explorer, .app-shell.sidebar-collapsed .explorer { display: flex; position: static; width: 100%; min-width: 0; border: 0; flex: 1; }
   .app-shell .explorer-heading { height: 42px; min-height: 42px; padding: 4px 12px; }
   .app-shell .explorer-heading button { width: 40px; height: 40px; }
@@ -118,7 +138,8 @@
   .search-field kbd { display: none; }
   .app-shell .example-item, .personal-file-name, .reference-nav { min-height: 44px; font-size: 13px; }
   .group-heading { min-height: 38px; font-size: 12px; }
-  .sidebar-bridge { margin-top: 8px; margin-bottom: 8px; }
+  .sidebar-bridge { display: none; }
+  .explorer .safari-filter p { display: none; }
   .app-shell .panel-resizer { display: none; }
   .app-shell .workspace-heading { height: 50px; padding: 0 18px; }
   .workspace-heading .sidebar-toggle { display: none; }
@@ -142,11 +163,17 @@
   .action-menu-content > button { min-height: 44px; font-size: 13px; }
   .menu-field select { font-size: 16px; }
   .app-shell .code-area { min-height: 0; flex: 1; opacity: 1; }
+  .safari-notice { font-size: 12px; padding: 6px 10px; align-items: center; }
+  .safari-notice > button { min-height: 44px; }
+  .safari-notice details[open] { max-height: 120px; overflow-y: auto; }
+  .safari-filter label { min-height: 44px; }
+  .app-shell[data-panel="guide"] .safari-notice, .app-shell[data-keyboard="true"] .safari-notice { display: none; }
+  .app-shell[data-panel="guide"] .compiler-info, .app-shell[data-keyboard="true"] .compiler-info { display: none; }
   .app-shell .plain-editor textarea { padding: 12px; font-size: 16px; line-height: 25px; }
   .app-shell .console-divider, .app-shell .console { display: none; }
   .app-shell .guide-panel { display: none; position: absolute; top: 46px; right: 0; bottom: 0; width: 100%; max-width: none; border: 0; border-radius: 0; z-index: 4; }
-  .app-shell[data-panel="output"] .code-area, .app-shell[data-panel="guide"] .code-area { display: none; }
-  .app-shell[data-panel="output"] .console { display: flex; height: auto !important; min-height: 0; flex: 1; }
+  .app-shell[data-panel="guide"] .code-area { display: none; }
+  .app-shell[data-panel="output"] .console { display: flex; height: 38% !important; min-height: 96px; max-height: 45%; flex: 0 1 220px; border-top: 1px solid var(--border); }
   .app-shell[data-panel="guide"] .guide-panel { display: flex; }
   .app-shell .guide-tabs { height: 44px; min-height: 44px; gap: 22px; padding: 0 16px; }
   .app-shell .guide-tabs > button:not(.icon-button) { font-size: 13px; }
@@ -158,8 +185,9 @@
   .app-shell .console-tabs > div:first-child > button { font-size: 12px; }
   .console-actions > .icon-button { width: 36px; height: 40px; }
   .console-actions .result-status { font-size: 10px; }
-  .close-output { display: none; }
-  .console-content { padding: 18px 16px; font-size: 13px; }
+  .close-output { display: flex; }
+  .console-content { padding: 10px 12px; font-size: 13px; }
+  .runtime-loading p { line-height: 1.4; margin: 6px 0; }
   .first-run-note { font-size: 11px; line-height: 1.7; }
   .mobile-panels { display: flex; height: 48px; min-height: 48px; border-top: 1px solid var(--border); background: var(--sidebar); padding-bottom: env(safe-area-inset-bottom, 0px); }
   .mobile-panels > button { flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; font-size: 12px; color: var(--muted); border-top: 2px solid transparent; }
@@ -180,6 +208,11 @@
   .modal input:not([type="range"]), .modal select { font-size: 16px; }
   .modal-buttons { flex-wrap: wrap; }
   .toast { bottom: 76px; }
+}
+
+@media (max-height: 500px) and (max-width: 900px), (max-height: 500px) and (pointer: coarse) {
+  .drawer-open .navigation-pane { overflow-y: auto; overscroll-behavior-y: contain; }
+  .app-shell .explorer, .app-shell.sidebar-collapsed .explorer { flex-shrink: 0; min-height: 260px; }
 }
 
 /* Scale reading material with the editor preference, including lesson solutions. */
