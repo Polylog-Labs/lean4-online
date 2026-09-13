@@ -1,0 +1,42 @@
+{
+  "name": "lean-lab",
+  "version": "0.1.0",
+  "private": true,
+  "engines": {
+    "node": ">=22.13.0"
+  },
+  "scripts": {
+    "setup": "tsx scripts/prepare-runtime.ts && tsx scripts/prepare-editor.ts",
+    "predev": "npm run setup",
+    "dev": "next dev",
+    "prebuild": "npm run setup",
+    "build": "next build",
+    "start": "next start",
+    "typecheck": "tsc --noEmit",
+    "test": "tsx --test tests/*.test.ts",
+    "test:lean": "tsx tests/verify-lean.ts",
+    "lint": "eslint app components lib scripts runtime tests --ignore-pattern release.json",
+    "test:browser-runtime": "tsx tests/verify-browser-runtime.ts"
+  },
+  "dependencies": {
+    "@monaco-editor/react": "4.7.0",
+    "lucide-react": "1.45.0",
+    "monaco-editor": "0.56.0",
+    "next": "16.3.5",
+    "react": "19.3.0",
+    "react-dom": "19.3.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.63.0",
+    "@types/node": "22.19.19",
+    "@types/react": "19.2.14",
+    "@types/react-dom": "19.2.3",
+    "esbuild": "0.28.2",
+    "eslint": "9.39.4",
+    "eslint-config-next": "16.3.5",
+    "jiti": "2.7.0",
+    "tsx": "4.23.13",
+    "typescript": "5.9.3"
+  },
+  "type": "module"
+}
