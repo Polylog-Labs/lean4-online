@@ -74,6 +74,12 @@ try {
   await diagnostic.click();
   await expect(input).toBeFocused();
   assert.ok(await input.evaluate(node => (node as HTMLTextAreaElement).selectionStart > 0), 'A diagnostic focuses the reported source position');
+  for (const viewport of [{ width: 320, height: 568 }, { width: 844, height: 390 }]) {
+    await mobile.setViewportSize(viewport);
+    const outputBounds = await mobile.getByRole('region', { name: 'Lean execution results' }).boundingBox();
+    const editorBounds = await mobile.getByRole('region', { name: 'Editor workspace' }).boundingBox();
+    assert.ok(outputBounds && editorBounds && outputBounds.y + outputBounds.height <= editorBounds.y + editorBounds.height, `Output remains inside the editor at ${viewport.width} × ${viewport.height}`);
+  }
   assert.deepEqual(mobileErrors, [], 'WebKit mobile errors');
   console.log('PASS WebKit mobile: native editing, Unicode, indentation, no editor/runtime download before Run, real Lean output, and diagnostic navigation.');
 } finally { await browser.close(); }

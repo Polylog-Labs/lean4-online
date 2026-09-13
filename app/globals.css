@@ -129,7 +129,7 @@ code { font-size: .92em; }
 .check-button:hover { background: var(--accent-faint); color: var(--accent); }
 .console-resizer { height: 4px; min-height: 4px; border-top: 1px solid var(--border); margin-bottom: -3px; cursor: ns-resize; position: relative; z-index: 2; touch-action: none; }
 .console-resizer:hover, .console-resizer:focus-visible { background: var(--accent-soft); border-color: var(--accent); }
-.console { min-height: 120px; flex-shrink: 0; display: flex; flex-direction: column; }
+.console { min-height: 120px; flex-shrink: 1; display: flex; flex-direction: column; }
 .console-tabs { height: 43px; flex-shrink: 0; display: flex; justify-content: space-between; align-items: stretch; border-bottom: 1px solid var(--border); padding: 0 15px 0 17px; }
 .console-tabs > div:first-child { display: flex; gap: 19px; }
 .console-tabs > div:first-child > button { display: flex; align-items: center; gap: 7px; position: relative; color: var(--muted); font-size: 10px; padding: 0 2px; }
@@ -431,3 +431,4 @@ button[hidden] { display: none; }
 /* Match the initial mobile layout before JavaScript restores panel state. */
 @media (max-width: 900px) { .app-shell[data-hydrated="false"] .guide-panel { display: none; } .app-shell[data-hydrated="false"] .code-area { opacity: 1; } }
 @media (max-width: 700px) { .app-shell[data-hydrated="false"] .explorer { display: none; } }
+@media (max-width: 700px) { .code-area { min-height: 140px; } }
