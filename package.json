@@ -17,7 +17,8 @@
     "test:lean": "tsx tests/verify-lean.ts",
     "lint": "eslint app components lib scripts runtime tests --ignore-pattern release.json",
     "test:browser-runtime": "tsx tests/verify-browser-runtime.ts",
-    "test:production": "tsx scripts/test-production.ts"
+    "test:production": "tsx scripts/test-production.ts",
+    "test:editor-webkit": "tsx tests/verify-editor-webkit.ts"
   },
   "dependencies": {
     "@monaco-editor/react": "4.7.0",

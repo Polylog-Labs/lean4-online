@@ -2,6 +2,10 @@
 // The boot sequence follows cauli/lean4-wasm-in-browser (Apache-2.0).
 // See third_party/lean-wasm for attribution and the exact pinned artifact.
 import release from './release.json';
+import { distributionVersion, runtimePath, type Artifact, type DownloadProgress, type RuntimeManifest } from './config';
+import { readDownload } from './download';
+
+declare const __LEAN_ASSET_BASE_URL__: string;
 
 declare const self: DedicatedWorkerGlobalScope & { Module: LeanModule; runtimeKeepalivePush(): void };
 interface LeanModule {
@@ -20,13 +24,15 @@ interface LeanModule {
   _lean_io_result_show_error(ptr: number): void;
   getValue(ptr: number, type: string): number;
 }
-interface Pack { file: string; entries: { name: string; offset: number; bytes: number }[] }
-const base = `/lean/${release.assetVersion}-slim`;
+const base = runtimePath;
+const assetBase = __LEAN_ASSET_BASE_URL__ || base;
+const download: DownloadProgress = { received: 0, cached: 0, total: 0 };
 let initialized = false;
 let runId: number | null = null;
 let outputBytes = 0;
 let truncated = false;
 function progress(message: string) { self.postMessage({ type: 'progress', message }); }
+function downloadProgress() { self.postMessage({ type: 'progress', message: 'Downloading Lean', download: { ...download } }); }
 function output(stream: 'stdout' | 'stderr', text: string) {
   const moduleProgress = /\[DEBUG:PROGRESS\]\s*(\d+)\/(\d+)/.exec(text);
   if (moduleProgress && runId === null) { progress(`Preparing Lean · ${moduleProgress[1]} / ${moduleProgress[2]} modules`); return; }
@@ -40,17 +46,23 @@ function output(stream: 'stdout' | 'stderr', text: string) {
   }
   self.postMessage({ type: 'output', id: runId, stream, text });
 }
-async function cachedFetch(url: string): Promise<Response> {
+async function downloadArtifact(artifact: Artifact): Promise<Uint8Array<ArrayBuffer>> {
+  const url = `${assetBase}/${artifact.file}`;
   let cache: Cache | undefined;
   try {
-    cache = await caches.open(`lean-lab-${release.assetVersion}`);
-    const hit = await cache.match(url);
-    if (hit) return hit;
+    cache = await caches.open(`lean-lab-${distributionVersion}`);
+    const hit = await cache.match(artifact.sha256);
+    if (hit) {
+      try {
+        const data = await readDownload(hit, artifact, () => {});
+        download.cached += data.byteLength; downloadProgress(); return data;
+      } catch { await cache.delete(artifact.sha256); }
+    }
   } catch { /* Browser storage can be unavailable; execution still works. */ }
-  const response = await fetch(url);
-  if (!response.ok) throw new Error(`Could not load Lean (${response.status}). Retry when your connection is available.`);
-  try { await cache?.put(url, response.clone()); } catch { /* Cache quota is optional. */ }
-  return response;
+  const response = await fetch(url, { credentials: 'omit' });
+  const data = await readDownload(response, artifact, bytes => { download.received += bytes; downloadProgress(); });
+  try { await cache?.put(artifact.sha256, new Response(data)); } catch { /* Cache quota is optional. */ }
+  return data;
 }
 function mkdir(path: string) {
   let current = '';
@@ -74,17 +86,27 @@ function compile(code: string): boolean {
   return true;
 }
 async function initialize() {
-  progress('Loading Lean · downloading the compiler on first use');
-  const manifest = await (await cachedFetch(`${base}/manifest.json`)).json() as { version: string; packs: Pack[] };
-  const wasmBinary = await (await cachedFetch(`${base}/lean.wasm`)).arrayBuffer();
+  progress('Reading runtime manifest');
+  const response = await fetch(`${base}/manifest.json`);
+  if (!response.ok) throw new Error('Could not load the Lean runtime manifest.');
+  const manifest = await response.json() as RuntimeManifest;
+  download.received = 0; download.cached = 0;
+  download.total = manifest.wasm.compressedBytes + manifest.packs.reduce((sum, pack) => sum + pack.compressedBytes, 0);
+  downloadProgress();
+  const packedWasm = await downloadArtifact(manifest.wasm);
+  const wasmBinary = await new Response(new Blob([packedWasm]).stream().pipeThrough(new DecompressionStream('gzip'))).arrayBuffer();
+  const unpackedHash = Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', wasmBinary)), byte => byte.toString(16).padStart(2, '0')).join('');
+  if (unpackedHash !== release.objects['slim/lean.wasm'].sha256) throw new Error('Lean compiler checksum mismatch.');
+  // This upstream glue does not read Module.wasmBinary. Its normal fetch must
+  // point at the verified in-memory bytes, or it downloads lean.wasm again.
+  const wasmURL = URL.createObjectURL(new Blob([wasmBinary], { type: 'application/wasm' }));
   progress('Starting the WebAssembly compiler');
-  await new Promise<void>((resolve, reject) => {
+  try { await new Promise<void>((resolve, reject) => {
     const config = {
-      wasmBinary,
       noInitialRun: true,
       INITIAL_MEMORY: 1024 * 1024 * 1024,
       wasmMemory: new WebAssembly.Memory({ initial: 16384, maximum: 65536, shared: true }),
-      locateFile: (file: string) => `${base}/${file}`,
+      locateFile: (file: string) => file === 'lean.wasm' ? wasmURL : `${base}/${file}`,
       mainScriptUrlOrBlob: `${base}/lean.js`,
       print: (text: string) => output('stdout', text),
       printErr: (text: string) => output('stderr', text),
@@ -104,11 +126,10 @@ async function initialize() {
     };
     self.Module = config as unknown as LeanModule;
     try { importScripts(`${base}/lean.js`); } catch (error) { reject(error); }
-  });
-  for (const [index, pack] of manifest.packs.entries()) {
-    progress(`Loading core library · ${index + 1} / ${manifest.packs.length}`);
-    const response = await cachedFetch(`${base}/${pack.file}`);
-    const stream = response.body!.pipeThrough(new DecompressionStream('gzip'));
+  }); } finally { URL.revokeObjectURL(wasmURL); }
+  for (const pack of manifest.packs) {
+    const compressed = await downloadArtifact(pack);
+    const stream = new Blob([compressed]).stream().pipeThrough(new DecompressionStream('gzip'));
     const data = new Uint8Array(await new Response(stream).arrayBuffer());
     for (const entry of pack.entries) {
       const file = `/lib/lean/${entry.name}`;

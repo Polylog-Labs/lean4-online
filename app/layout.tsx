@@ -32,7 +32,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" data-theme="dark" suppressHydrationWarning>
+      <head><link rel="preload" href="/editor/editor.js" as="script" /></head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >

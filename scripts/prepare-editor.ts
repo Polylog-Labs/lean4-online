@@ -20,4 +20,6 @@ await build({
   outfile: 'public/editor/editor.worker.js', bundle: true, format: 'iife',
   platform: 'browser', target: 'es2022', minify: true,
 });
-await build({ entryPoints: ['runtime/lean.worker.ts'], outfile: 'public/lean-worker.js', bundle: true, format: 'iife', platform: 'browser', target: 'es2022' });
+const assetBase = process.env.LEAN_ASSET_BASE_URL?.replace(/\/$/, '') || '';
+if (assetBase && !/^https:\/\//.test(assetBase)) throw new Error('LEAN_ASSET_BASE_URL must be an HTTPS URL.');
+await build({ entryPoints: ['runtime/lean.worker.ts'], outfile: 'public/lean-worker.js', bundle: true, format: 'iife', platform: 'browser', target: 'es2022', define: { __LEAN_ASSET_BASE_URL__: JSON.stringify(assetBase) } });

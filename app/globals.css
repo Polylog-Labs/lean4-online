@@ -159,6 +159,18 @@ code { font-size: .92em; }
 .runtime-loading p, .runtime-error p { color: var(--muted); line-height: 1.7; font-size: 11px; margin: 8px 0; }
 .indeterminate-progress { height: 3px; background: var(--accent-soft); border-radius: 2px; overflow: hidden; margin-top: 18px; max-width: 250px; }
 .indeterminate-progress:after { content: ''; display: block; width: 35%; height: 100%; background: var(--accent); animation: progress 1.8s ease-in-out infinite; }
+.download-status { margin-top: 16px; width: min(380px, 100%); }
+.download-status > div { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px; color: var(--muted); font-size: 10px; font-variant-numeric: tabular-nums; }
+.download-status progress { display: block; width: 100%; height: 5px; margin-top: 9px; appearance: none; border: 0; border-radius: 3px; overflow: hidden; background: var(--accent-soft); accent-color: var(--accent); }
+.download-status progress::-webkit-progress-bar { background: var(--accent-soft); }
+.download-status progress::-webkit-progress-value { background: var(--accent); }
+.download-status progress::-moz-progress-bar { background: var(--accent); }
+.status-download { width: 76px; height: 4px; accent-color: var(--accent); }
+.status-stop { font-size: inherit; color: var(--accent); padding: 2px 4px; }
+.plain-editor { position: relative; height: 100%; background: var(--surface); }
+.plain-editor textarea { display: block; width: 100%; height: 100%; resize: none; border: 0; outline: none; padding: 27px 30px 45px; background: transparent; color: var(--text); font-family: var(--font-mono); font-size: 14px; line-height: 26px; tab-size: 2; }
+.plain-editor > span { position: absolute; bottom: 10px; right: 14px; color: var(--soft); font-size: 10px; pointer-events: none; }
+@media (max-width: 700px) { .status-download { width: 35px; } .statusbar > div:last-child { display: none; } }
 .spin { animation: spin 1s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 @keyframes progress { from { transform: translateX(-100%); } to { transform: translateX(400%); } }

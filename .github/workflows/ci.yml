@@ -60,7 +60,7 @@ jobs:
           LEAN_LAB_REQUIRE_NATIVE: '1'
       - name: Production build
         run: npm run build
-      - name: Install Chromium
-        run: npx playwright install --with-deps chromium
+      - name: Install Chromium and WebKit
+        run: npx playwright install --with-deps chromium webkit
       - name: Browser smoke tests against the production app
         run: npm run test:production

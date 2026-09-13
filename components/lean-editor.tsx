@@ -4,6 +4,7 @@ import Script from 'next/script';
 import Editor, { loader, type Monaco } from '@monaco-editor/react';
 import type { editor, Position } from 'monaco-editor';
 import type { Diagnostic } from '../lib/lean';
+import { unicodeSymbols } from '../lib/unicode';
 
 let configured = false;
 function configure(monaco: Monaco) {
@@ -16,11 +17,12 @@ function configure(monaco: Monaco) {
     autoClosingPairs: [{ open: '(', close: ')' }, { open: '[', close: ']' }, { open: '{', close: '}' }, { open: '"', close: '"' }],
   });
   monaco.languages.setMonarchTokensProvider('lean4', {
-    keywords: ['def', 'theorem', 'example', 'by', 'where', 'inductive', 'structure', 'deriving', 'match', 'with', 'fun', 'let', 'in', 'do', 'if', 'then', 'else', 'for', 'return', 'import', 'open', 'namespace', 'end', 'class', 'instance', 'variable', 'universe', 'partial', 'private', 'protected', 'noncomputable', 'opaque', 'axiom', 'abbrev'],
-    tactics: ['rfl', 'simp', 'rw', 'exact', 'intro', 'intros', 'apply', 'constructor', 'cases', 'induction', 'decide', 'omega', 'grind', 'rcases', 'obtain', 'unfold', 'sorry', 'have', 'show', 'calc'],
+    unicode: true,
+    keywords: ['def', 'theorem', 'example', 'by', 'where', 'inductive', 'structure', 'deriving', 'match', 'with', 'fun', 'let', 'in', 'do', 'if', 'then', 'else', 'for', 'return', 'import', 'open', 'namespace', 'end', 'class', 'instance', 'variable', 'universe', 'section', 'local', 'notation', 'infixl', 'infixr', 'mut', 'termination_by', 'partial', 'private', 'protected', 'noncomputable', 'opaque', 'axiom', 'abbrev'],
+    tactics: ['rfl', 'simp', 'rw', 'exact', 'intro', 'intros', 'apply', 'constructor', 'cases', 'induction', 'decide', 'omega', 'grind', 'rcases', 'obtain', 'unfold', 'sorry', 'have', 'show', 'calc', 'funext', 'by_cases', 'classical', 'simpa', 'change'],
     typeKeywords: ['Nat', 'Int', 'String', 'Bool', 'List', 'Array', 'Option', 'IO', 'Unit', 'Prop', 'Type', 'Repr', 'Fin', 'Decidable', 'DecidablePred'],
     tokenizer: {
-      root: [[/--.*$/, 'comment'], [/\/-/, 'comment', '@comment'], [/(#eval|#check|#print|#reduce)\b/, 'keyword'], [/s!"/, 'string', '@string'], [/"/, 'string', '@string'], [/[a-zA-Z_][\w'?!]*/, { cases: { '@keywords': 'keyword', '@tactics': 'keyword.tactic', '@typeKeywords': 'type', '@default': 'identifier' } }], [/\d+/, 'number'], [/[{}()[\]]/, '@brackets'], [/:=|=>|→|←|∀|∧|∨|[+*=<>:|·]/, 'operator']],
+      root: [[/--.*$/, 'comment'], [/\/-/, 'comment', '@comment'], [/(#eval|#check|#print|#reduce)\b/, 'keyword'], [/s!"/, 'string', '@string'], [/"/, 'string', '@string'], [/[\p{L}_][\p{L}\p{N}_'?!]*/u, { cases: { '@keywords': 'keyword', '@tactics': 'keyword.tactic', '@typeKeywords': 'type', '@default': 'identifier' } }], [/\d+/, 'number'], [/[{}()[\]]/, '@brackets'], [/:=|=>|→|←|∀|∃|∧|∨|¬|↔|≠|≤|≥|∈|∉|∣|×|∘|▸|⊢|[+*=<>:|·]/, 'operator']],
       comment: [[/\/-/, 'comment', '@push'], [/-\//, 'comment', '@pop'], [/[^/-]+/, 'comment'], [/./, 'comment']],
       string: [[/\\./, 'string.escape'], [/[^"\\]+/, 'string'], [/"/, 'string', '@pop']],
     },
@@ -35,15 +37,17 @@ function configure(monaco: Monaco) {
     rules: [{ token: 'comment', foreground: '777484' }, { token: 'keyword', foreground: 'B999EF' }, { token: 'keyword.tactic', foreground: 'E5B97B' }, { token: 'type', foreground: '86C8D2' }, { token: 'string', foreground: '9BC8A6' }, { token: 'number', foreground: 'DEA97F' }],
     colors: { 'editor.background': '#1B1A20', 'editor.foreground': '#DDD9E5', 'editorLineNumber.foreground': '#57535F', 'editorLineNumber.activeForeground': '#A6A0B2', 'editor.lineHighlightBackground': '#222028', 'editor.selectionBackground': '#443559', 'editorCursor.foreground': '#B999EF', 'editorIndentGuide.background1': '#2B2832', 'editorWidget.background': '#25222C' },
   });
-  const symbols: Record<string, string> = { '\\to': '→', '\\leftarrow': '←', '\\forall': '∀', '\\exists': '∃', '\\and': '∧', '\\or': '∨', '\\not': '¬', '\\ne': '≠', '\\le': '≤', '\\ge': '≥', '\\alpha': 'α', '\\beta': 'β', '\\lambda': 'λ' };
   monaco.languages.registerCompletionItemProvider('lean4', {
     triggerCharacters: ['\\'],
     provideCompletionItems(model: editor.ITextModel, position: Position) {
-      const prefix = model.getLineContent(position.lineNumber).slice(0, position.column - 1).match(/\\[a-z]*$/)?.[0];
+      const prefix = model.getLineContent(position.lineNumber).slice(0, position.column - 1).match(/\\[a-zA-Z]*$/)?.[0];
       if (!prefix) return { suggestions: [] };
-      return { suggestions: Object.entries(symbols).filter(([key]) => key.startsWith(prefix)).map(([label, insertText]) => ({ label, insertText, detail: insertText, kind: monaco.languages.CompletionItemKind.Text, range: { startLineNumber: position.lineNumber, endLineNumber: position.lineNumber, startColumn: position.column - prefix.length, endColumn: position.column } })) };
+      return { suggestions: Object.entries(unicodeSymbols).filter(([key]) => key.startsWith(prefix)).map(([label, insertText]) => ({ label, insertText, detail: insertText, kind: monaco.languages.CompletionItemKind.Text, range: { startLineNumber: position.lineNumber, endLineNumber: position.lineNumber, startColumn: position.column - prefix.length, endColumn: position.column } })) };
     },
   });
+}
+function PlainEditor({ value, onChange, failed = false }: { value: string; onChange(value: string): void; failed?: boolean }) {
+  return <div className="plain-editor"><textarea aria-label="Lean source code editor" value={value} onChange={event => onChange(event.target.value)} spellCheck={false} autoCapitalize="off" autoCorrect="off" /><span>{failed ? 'Syntax highlighting unavailable. You can still edit and run.' : 'Loading syntax highlighting…'}</span></div>;
 }
 export function LeanEditor({ id, value, onChange, theme, diagnostics, onCursor, onReady }: {
   id: string; value: string; onChange(value: string): void; theme: 'light' | 'dark'; diagnostics: Diagnostic[];
@@ -70,6 +74,6 @@ export function LeanEditor({ id, value, onChange, theme, diagnostics, onCursor, 
   }} onError={() => setLoadError(true)} />{editorReady ? <Editor height="100%" language="lean4" path={`file:///${id}.lean`} value={value} theme={`lean-${theme}`}
     beforeMount={configure} onChange={next => onChange(next ?? '')}
     onMount={(instance, monaco) => { editorRef.current = instance; monacoRef.current = monaco; onReady(instance); instance.onDidChangeCursorPosition(event => onCursor(event.position.lineNumber, event.position.column)); updateMarkers(); }}
-    loading={<div className="editor-loading">Loading editor<span className="loading-dots">…</span></div>}
-    options={{ fontSize: 14, lineHeight: 26, fontFamily: "'Geist Mono', 'SFMono-Regular', Consolas, monospace", fontLigatures: true, minimap: { enabled: false }, padding: { top: 27, bottom: 24 }, scrollBeyondLastLine: false, renderLineHighlight: 'line', overviewRulerLanes: 0, hideCursorInOverviewRuler: true, lineNumbersMinChars: 4, glyphMargin: false, folding: true, automaticLayout: true, tabSize: 2, wordWrap: 'on', smoothScrolling: true, bracketPairColorization: { enabled: false }, guides: { indentation: true }, scrollbar: { verticalScrollbarSize: 6, horizontalScrollbarSize: 6 }, ariaLabel: 'Lean source code editor', quickSuggestions: false, suggestOnTriggerCharacters: true }} /> : <div className="editor-loading">{loadError ? 'Could not load the editor. Reload the page to retry.' : 'Loading editor…'}</div>}</>;
+    loading={<PlainEditor value={value} onChange={onChange} />}
+    options={{ fontSize: 14, lineHeight: 26, fontFamily: "'Geist Mono', 'SFMono-Regular', Consolas, monospace", fontLigatures: true, minimap: { enabled: false }, padding: { top: 27, bottom: 24 }, scrollBeyondLastLine: false, renderLineHighlight: 'line', overviewRulerLanes: 0, hideCursorInOverviewRuler: true, lineNumbersMinChars: 4, glyphMargin: false, folding: true, automaticLayout: true, tabSize: 2, wordWrap: 'on', smoothScrolling: true, bracketPairColorization: { enabled: false }, guides: { indentation: true }, scrollbar: { verticalScrollbarSize: 6, horizontalScrollbarSize: 6 }, ariaLabel: 'Lean source code editor', quickSuggestions: false, suggestOnTriggerCharacters: true }} /> : <PlainEditor value={value} onChange={onChange} failed={loadError} />}</>;
 }

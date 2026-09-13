@@ -43,6 +43,7 @@ next-env.d.ts
 # Generated, checksum-pinned runtime and editor assets
 /public/lean/
 /public/lean-worker.js
+/public/lean-worker-cors-test.js
 /public/editor/
 /.cache/
 *.tsbuildinfo

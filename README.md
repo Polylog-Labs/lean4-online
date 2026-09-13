@@ -13,20 +13,20 @@ npm run dev
 
 Open the local URL printed by Next.js (normally http://localhost:3000).
 
-The first setup downloads a **277 MiB checksum-pinned Lean toolchain archive**. It packages the core library and the smaller WASM binary into `public/lean/`. The browser downloads roughly **101 MiB** on its first run, then caches the runtime. Initial import takes several seconds on a desktop; subsequent small examples generally finish in milliseconds. The UI remains responsive because Lean executes in a Web Worker.
+The first setup downloads a **277 MiB checksum-pinned Lean toolchain archive**. It packages the core library and the smaller WASM binary into `public/lean/`. The browser downloads **45.9 MB of compressed compiler and library data**, plus the small JavaScript loader, on its first run. The UI displays downloaded MB, total MB, and bytes reused from cache. Later runs reuse the cached data. The compiler is the same slim build used from the first version; the uncompressed 70 MB binary is now transferred as a 13.8 MB gzip pack. Compression reduces transfer size, not the compiler’s in-memory size. Initial import takes several seconds on a desktop; subsequent small examples generally finish in milliseconds. The UI remains responsive because Lean executes in a Web Worker.
 
 All authored application code, setup scripts, and tests use TypeScript. There are no authored `.mjs` files. Generated Emscripten and Monaco assets are JavaScript and are ignored by Git.
 
 ## What works
 
 - Monaco editor, Lean syntax highlighting, Unicode symbol suggestions, independent file tabs, and source-position diagnostics.
-- 44 runnable examples: 13 programming/proof foundations, 25 explorations from the mathematical Top 100 list, the quadratic equation, rings, GF(5), GF(4), Diffie–Hellman, and toy RSA.
+- 46 runnable examples: core-library imports, mathematical notation, 13 programming/proof foundations, 25 explorations from the mathematical Top 100 list, the quadratic equation, rings, GF(5), GF(4), Diffie–Hellman, and toy RSA.
 - A compact header and left navigation: Examples, Playground, Learn, Syntax. Collapsible, searchable example groups.
 - A personal My files directory with program/proof starters, create, rename, download, delete, and independent tabs. Copy any example into Playground; closing a tab retains your file.
-- 8 lessons with editable exercises, hints, solutions, and Lean-checked completion. Incorrect answers and `sorry` placeholders do not complete a lesson.
-- 24 syntax reference entries with explanations and links to runnable examples.
+- 10 lessons with editable exercises, hints, solutions, and Lean-checked completion. Incorrect answers and `sorry` placeholders do not complete a lesson.
+- 71 syntax reference entries with explanations, Unicode input shortcuts, and editable snippets that open in Playground.
 - Run/check/stop, execution timeout, bounded output, and worker recovery.
-- Light, dark, and system themes; responsive panels; keyboard shortcuts; resizable console.
+- Dark mode by default, with light and system themes in Settings; responsive panels; keyboard shortcuts; resizable console.
 - Device-local autosave and lesson progress; Unicode-safe share links; `.lean` file downloads. Original v1 drafts migrate automatically to a file store with separately tracked tabs.
 - Reset individual lessons or all completed lesson progress in Settings without deleting code.
 - A Zcash donation address and copy button in Settings.
@@ -73,7 +73,7 @@ npm run build
 
 `test:lean` executes every example, every syntax snippet, every lesson solution, and every unfinished starter against the actual pinned WASM binary. It also checks negative proofs/type errors. If native Lean is installed, it verifies `lean --run` for every program and the Lake executable workflow.
 
-CI runs on every push and pull request via `.github/workflows/ci.yml`: TypeScript, lint, unit tests, all 44 examples, 24 syntax snippets, and lesson checks in WASM, native programs with Lean 4.33.1, a Lake executable, the production build, and all examples in Chromium. Native Lean is mandatory in CI. The toolchains are cached by version. The browser suite yields between compiles to catch runtime shutdowns between user actions.
+CI runs on every push and pull request via `.github/workflows/ci.yml`: TypeScript, lint, unit tests, all 46 examples, 71 syntax snippets, and lesson checks in WASM, native programs with Lean 4.33.1, a Lake executable, the production build, and all examples in Chromium. Native Lean is mandatory in CI. The toolchains are cached by version. The browser suite yields between compiles to catch runtime shutdowns between user actions.
 
 To run the production browser smoke test locally after building:
 
@@ -106,7 +106,23 @@ Cross-Origin-Opener-Policy: same-origin
 Cross-Origin-Embedder-Policy: require-corp
 ```
 
-These headers enable `SharedArrayBuffer`, required by threaded Lean WASM. Runtime URLs include the pinned build identifier and can be cached immutably. All runtime and editor assets are served from the same origin. Large artifacts are static files and do not pass through a serverless function.
+These headers enable `SharedArrayBuffer`, required by threaded Lean WASM. Runtime URLs include the pinned build identifier and can be cached immutably. Worker scripts and editor assets are served from the app origin. Large runtime packs can be downloaded directly from a separate public host (see below). Large artifacts are static files and do not pass through a serverless function.
+
+## Direct runtime downloads
+
+The worker supports `LEAN_ASSET_BASE_URL`, an HTTPS directory containing the six `.pack` files generated by setup. Requests go from the browser directly to that URL, without a Vercel proxy. When this setting is present at build time, the large packs are omitted from the Vercel deployment. The versioned manifest and pthread JavaScript loader remain on the app origin. Every pack is verified against its pinned size and SHA-256 before use, and the decompressed compiler is also checked against the upstream checksum. A download failure is shown to the user; it does not silently fall back to Vercel bandwidth.
+
+Prepare a runtime-only directory for a public GitHub repository or another static host:
+
+```sh
+npx tsx scripts/export-runtime.ts
+```
+
+The command writes `.cache/runtime-public/<version>/` with six gzip packs, a checksum manifest, and licenses. It does not publish anything. A public repository can be served through an immutable jsDelivr URL such as `https://cdn.jsdelivr.net/gh/OWNER/RUNTIME-REPO@FULL_COMMIT`. A private repository cannot supply anonymous browser downloads. GitHub Release download links do not provide the required browser CORS headers and are not interchangeable with these CDN URLs.
+
+The host must return `Access-Control-Allow-Origin: *` (or the app origin) and serve `.pack` files as raw bytes without a `Content-Encoding: gzip` header, because the worker decompresses them. The browser sends no credentials or source code to the asset host. Avoid a Next.js rewrite or serverless proxy: that would put the large downloads back through Vercel.
+
+Without `LEAN_ASSET_BASE_URL`, the packs are served locally, which is the default development setup. Simply preparing a public bundle does not activate external hosting.
 
 ## Project map
 

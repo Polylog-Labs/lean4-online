@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { ArrowDownToLine, ArrowLeft, ArrowRight, BookOpen, Braces, ChevronDown, CircleCheck, Code2, ExternalLink, FileCode2, FlaskConical, Lightbulb, Search, ShieldCheck, Terminal, X } from 'lucide-react';
 import { examples, lessons, syntax, type Example, type Lesson } from '../lib/content';
 import type { OpenFile } from '../lib/workspace';
+import type { SyntaxEntry } from '../lib/syntax';
 
 export function Guide({ file, example, lesson, complete, onClose, onExample, onLesson, onLearn, onSyntax, onDownload, onEdit }: {
   file: OpenFile; example?: Example; lesson?: Lesson; complete: boolean; onClose(): void; onExample(example: Example): void;
@@ -42,7 +43,7 @@ export function LearnPage({ completed, search, onLesson }: { completed: string[]
     <div className="learning-resources"><div><h3>Documentation</h3><p>Official Lean books and tutorials.</p></div><a href="https://lean-lang.org/functional_programming_in_lean/" target="_blank" rel="noreferrer">Functional Programming in Lean <ExternalLink size={14} /></a><a href="https://lean-lang.org/theorem_proving_in_lean4/" target="_blank" rel="noreferrer">Theorem Proving in Lean <ExternalLink size={14} /></a></div>
   </div>;
 }
-export function SyntaxPage({ search, group, onExample, onClear }: { search: string; group: string; onExample(example: Example): void; onClear(): void }) {
-  const filtered = syntax.filter(item => (group === 'All' || item.group === group) && `${item.token} ${item.title} ${item.explanation}`.toLowerCase().includes(search.toLowerCase()));
-  return <div className="syntax-page"><div className="syntax-grid">{filtered.map(item => <article className="syntax-card" key={item.token}><div className="syntax-card-top"><code>{item.token}</code><span>{item.group}</span></div><h3>{item.title}</h3><p>{item.explanation}</p><pre>{item.code}</pre><button className="text-button" onClick={() => onExample(examples.find(example => example.id === item.exampleId)!)}>Try an example <ArrowRight size={13} /></button></article>)}</div>{!filtered.length && <div className="empty-reference"><Search size={26} /><h3>No matching syntax</h3><p>Try another search term or select All syntax.</p><button className="button button-quiet" onClick={onClear}>Clear filters</button></div>}</div>;
+export function SyntaxPage({ search, group, onOpen, onClear }: { search: string; group: string; onOpen(item: SyntaxEntry): void; onClear(): void }) {
+  const filtered = syntax.filter(item => (group === 'All' || item.group === group) && `${item.token} ${item.title} ${item.explanation} ${item.input ?? ''} ${item.code}`.toLowerCase().includes(search.toLowerCase()));
+  return <div className="syntax-page"><div className="syntax-grid">{filtered.map(item => <article className="syntax-card" key={item.token}><div className="syntax-card-top"><code>{item.token}</code><span>{item.group}</span></div><h3>{item.title}</h3><p>{item.explanation}</p>{item.input && <p className="symbol-input">Type <code>{item.input}</code> and accept the suggestion.</p>}<pre>{item.code}</pre><button className="text-button" onClick={() => onOpen(item)}>Open in Playground <ArrowRight size={13} /></button></article>)}</div>{!filtered.length && <div className="empty-reference"><Search size={26} /><h3>No matching syntax</h3><p>Try another search term or select All syntax.</p><button className="button button-quiet" onClick={onClear}>Clear filters</button></div>}</div>;
 }
