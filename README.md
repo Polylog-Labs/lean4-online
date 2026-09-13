@@ -71,9 +71,9 @@ npm run test:lean
 npm run build
 ```
 
-`test:lean` executes every example, every lesson solution, and every unfinished starter against the actual pinned WASM binary. It also checks negative proofs/type errors. If native Lean is installed, it verifies `lean --run` for every program and the Lake executable workflow.
+`test:lean` executes every example, every syntax snippet, every lesson solution, and every unfinished starter against the actual pinned WASM binary. It also checks negative proofs/type errors. If native Lean is installed, it verifies `lean --run` for every program and the Lake executable workflow.
 
-CI runs on every push and pull request via `.github/workflows/ci.yml`: TypeScript, lint, unit tests, all 44 examples and lesson checks in WASM, native programs with Lean 4.33.1, a Lake executable, the production build, and all examples in Chromium. Native Lean is mandatory in CI. The toolchains are cached by version. The browser suite yields between compiles to catch runtime shutdowns between user actions.
+CI runs on every push and pull request via `.github/workflows/ci.yml`: TypeScript, lint, unit tests, all 44 examples, 24 syntax snippets, and lesson checks in WASM, native programs with Lean 4.33.1, a Lake executable, the production build, and all examples in Chromium. Native Lean is mandatory in CI. The toolchains are cached by version. The browser suite yields between compiles to catch runtime shutdowns between user actions.
 
 To run the production browser smoke test locally after building:
 

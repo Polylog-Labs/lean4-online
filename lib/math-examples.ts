@@ -559,7 +559,7 @@ example : mul u u = add u one := by decide
   {
     id: 'diffie-hellman', title: 'Diffie–Hellman: a shared secret', file: 'DiffieHellman.lean', category: 'Cryptography',
     milestone: '1976 · Diffie and Hellman', fact: 'Both participants arrive at g^(ab) even though they exchange only g^a and g^b.',
-    scopeLabel: 'Toy protocol execution', scope: 'Checks one exchange modulo 23 with tiny public secrets. It demonstrates agreement, not cryptographic security. Do not use these parameters for protection.',
+    scopeLabel: 'Toy protocol execution', scope: 'Checks one exchange modulo 23 with known example secrets. It demonstrates agreement, not cryptographic security. Do not use these parameters for protection.',
     description: 'Run both sides of a key exchange and prove they arrive at the same residue.',
     body: `def publicKey (secret : Nat) : Fin 23 := (5 : Fin 23)^secret
 
@@ -616,7 +616,7 @@ export const mathExamples: Example[] = entries.map(entry => {
     expected: entry.expected ?? 'File checked successfully.', challenge: entry.challenge,
     concepts: entry.concepts ?? [
       { token: 'theorem / example', explanation: 'A named theorem or anonymous example states exactly the claim Lean must check. Read its inputs and assumptions to see the scope.' },
-      { token: entry.body.includes('grind') ? 'grind' : 'decide', explanation: entry.body.includes('grind') ? 'Core proof automation combines logical reasoning and polynomial normalization, producing a proof checked by Lean.' : 'Builds a proof using a decision procedure. Quantifying over Fin n checks every one of its finitely many values.' },
+      { token: entry.body.includes('grind') ? 'grind' : 'decide', explanation: entry.body.includes('grind') ? 'Combines logical reasoning and polynomial normalization to construct a proof term that Lean checks.' : 'Builds a proof using a decision procedure. Quantifying over Fin n checks every one of its finitely many values.' },
       { token: entry.body.includes('Int') ? 'Int' : 'Nat / Fin n', explanation: entry.body.includes('Int') ? 'Exact integers, including negatives. Unlike Nat subtraction, integer subtraction does not truncate at zero.' : 'Nat is an arbitrary-size natural number. Fin n contains exactly the natural numbers less than n, with arithmetic modulo n.' },
     ],
     history: { top100: entry.top100, milestone: entry.milestone, fact: entry.fact, scope: entry.scope, scopeLabel: entry.scopeLabel, source, sourceTitle },

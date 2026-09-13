@@ -48,7 +48,7 @@ jobs:
         run: |
           if [ ! -x "$HOME/.elan/bin/elan" ]; then
             curl --fail --silent --show-error --location \
-              https://raw.githubusercontent.com/leanprover/elan/13e8ade06344711b0a99be2374483872ac70d036/elan-init.sh \
+              https://raw.githubusercontent.com/leanprover/elan/58e8d545e33641f66dbcbd22c4283109e71757be/elan-init.sh \
               --output "$RUNNER_TEMP/elan-init.sh"
             sh "$RUNNER_TEMP/elan-init.sh" -y --default-toolchain none
           fi

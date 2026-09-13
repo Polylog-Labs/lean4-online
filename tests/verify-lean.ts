@@ -3,7 +3,7 @@ import { mkdtemp, writeFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
-import { examples, lessons } from '../lib/content';
+import { examples, lessons, syntax } from '../lib/content';
 import { finishRun, sourceForRun } from '../lib/lean';
 import { fixtureRoot, prepareRuntime } from '../scripts/prepare-runtime';
 import { bootLean } from './wasm-driver';
@@ -20,6 +20,12 @@ for (const example of examples) {
   assert.equal(actual || 'File checked successfully.', example.expected, `${example.id} output`);
   console.log(`PASS example: ${example.title} (${Math.round(result.elapsed)} ms)`); count++;
 }
+for (const item of syntax) {
+  const result = run(item.code);
+  assert.ok(result.success, `${item.title} syntax: ${JSON.stringify(result)}`);
+  assert.equal(result.incomplete, item.token === 'sorry', `${item.title} completion`);
+  console.log(`PASS syntax: ${item.title}`); count++;
+}
 for (const lesson of lessons) {
   const mode = ['io', 'verified'].includes(lesson.id) ? 'program' : 'check';
   const solution = run(sourceForRun(lesson.solution, mode, lesson.validation));
@@ -33,21 +39,25 @@ assert.equal(run('def broken : Nat := "oops"').success, false); count++;
 assert.equal(run('example : False := by sorry').incomplete, true); count++;
 
 // Verify the native execution path taught in the app when Lean is installed.
-const nativeAvailable = spawnSync('lean', ['--version'], { timeout: 30_000 }).status === 0;
+// Resolve elan once so each example runs the compiler directly.
+const resolvedLean = spawnSync('elan', ['which', 'lean'], { encoding: 'utf8', timeout: 30_000 });
+const nativeCommand = resolvedLean.status === 0 ? resolvedLean.stdout.trim() : 'lean';
+const nativeAvailable = spawnSync(nativeCommand, ['--version'], { timeout: 30_000 }).status === 0;
 if (process.env.LEAN_LAB_REQUIRE_NATIVE === '1') assert.ok(nativeAvailable, 'CI requires native Lean; install the pinned toolchain before this test.');
 if (nativeAvailable) {
   const dir = await mkdtemp(path.join(tmpdir(), 'lean-lab-native-'));
   try {
     for (const example of examples.filter(example => example.mode === 'program')) {
       const file = path.join(dir, example.file); await writeFile(file, example.code);
-      const result = spawnSync('lean', ['--run', file], { encoding: 'utf8', timeout: 30_000 });
-      assert.equal(result.status, 0, result.stderr); assert.equal(result.stdout.trim(), example.expected, `${example.id} native output`); count++;
+      const result = spawnSync(nativeCommand, ['--run', file], { encoding: 'utf8', timeout: 30_000 });
+      assert.equal(result.status, 0, `${example.id} native run: ${result.error?.message ?? result.stderr}`); assert.equal(result.stdout.trim(), example.expected, `${example.id} native output`); count++;
     }
     console.log('PASS native lean --run for every program');
-    const lake = spawnSync('lake', ['init', 'hello', 'exe'], { cwd: dir, encoding: 'utf8', timeout: 30_000 });
+    const nativeLake = resolvedLean.status === 0 ? path.join(path.dirname(nativeCommand), 'lake') : 'lake';
+    const lake = spawnSync(nativeLake, ['init', 'hello', 'exe'], { cwd: dir, encoding: 'utf8', timeout: 30_000 });
     assert.equal(lake.status, 0, lake.stderr);
     await writeFile(path.join(dir, 'Main.lean'), examples[0].code);
-    const build = spawnSync('lake', ['build'], { cwd: dir, encoding: 'utf8', timeout: 60_000 });
+    const build = spawnSync(nativeLake, ['build'], { cwd: dir, encoding: 'utf8', timeout: 60_000 });
     assert.equal(build.status, 0, build.stderr);
     const executable = spawnSync(path.join(dir, '.lake/build/bin/hello'), [], { encoding: 'utf8', timeout: 10_000 });
     assert.equal(executable.stdout.trim(), examples[0].expected); count++;

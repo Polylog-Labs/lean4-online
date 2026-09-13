@@ -5,7 +5,7 @@ import { finishRun, type OutputLine, type RunResult } from './lean';
 type State = 'idle' | 'loading' | 'ready' | 'running' | 'error';
 export function useLean() {
   const [state, setState] = useState<State>('idle');
-  const [progress, setProgress] = useState('Ready when you are');
+  const [progress, setProgress] = useState('Runtime not loaded');
   const [version, setVersion] = useState('Lean 4');
   const worker = useRef<Worker | null>(null);
   const init = useRef<{ promise: Promise<void>; resolve(): void; reject(error: Error): void } | null>(null);

@@ -400,3 +400,11 @@ button[hidden] { display: none; }
 .donation-address { display: block; width: 100%; margin: 12px 0; padding: 12px; font-family: var(--font-mono); font-size: 10px; color: var(--text); background: var(--canvas); border: 1px solid var(--border); border-radius: 6px; }
 @media (max-width: 900px) { .guide-panel { top: 133px; } }
 @media (max-width: 700px) { .topbar { height: 46px; padding: 0 13px; } .explorer { top: 46px; } .guide-panel { top: 122px; } }
+
+/* Content headings identify the view; instructional text stays with the code. */
+.workspace-heading { height: 66px; }
+.learning-intro h2 { font-size: 28px; line-height: 1.3; }
+.learning-intro { padding-top: 12px; }
+.syntax-page { padding-top: 0; }
+@media (max-width: 900px) { .guide-panel { top: 112px; } }
+@media (max-width: 700px) { .workspace-heading { height: 60px; } .guide-panel { top: 106px; } }

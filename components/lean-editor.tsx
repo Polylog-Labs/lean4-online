@@ -17,8 +17,8 @@ function configure(monaco: Monaco) {
   });
   monaco.languages.setMonarchTokensProvider('lean4', {
     keywords: ['def', 'theorem', 'example', 'by', 'where', 'inductive', 'structure', 'deriving', 'match', 'with', 'fun', 'let', 'in', 'do', 'if', 'then', 'else', 'for', 'return', 'import', 'open', 'namespace', 'end', 'class', 'instance', 'variable', 'universe', 'partial', 'private', 'protected', 'noncomputable', 'opaque', 'axiom', 'abbrev'],
-    tactics: ['rfl', 'simp', 'rw', 'exact', 'intro', 'intros', 'apply', 'constructor', 'cases', 'induction', 'decide', 'omega', 'sorry', 'have', 'show', 'calc'],
-    typeKeywords: ['Nat', 'Int', 'String', 'Bool', 'List', 'Array', 'Option', 'IO', 'Unit', 'Prop', 'Type', 'Repr'],
+    tactics: ['rfl', 'simp', 'rw', 'exact', 'intro', 'intros', 'apply', 'constructor', 'cases', 'induction', 'decide', 'omega', 'grind', 'rcases', 'obtain', 'unfold', 'sorry', 'have', 'show', 'calc'],
+    typeKeywords: ['Nat', 'Int', 'String', 'Bool', 'List', 'Array', 'Option', 'IO', 'Unit', 'Prop', 'Type', 'Repr', 'Fin', 'Decidable', 'DecidablePred'],
     tokenizer: {
       root: [[/--.*$/, 'comment'], [/\/-/, 'comment', '@comment'], [/(#eval|#check|#print|#reduce)\b/, 'keyword'], [/s!"/, 'string', '@string'], [/"/, 'string', '@string'], [/[a-zA-Z_][\w'?!]*/, { cases: { '@keywords': 'keyword', '@tactics': 'keyword.tactic', '@typeKeywords': 'type', '@default': 'identifier' } }], [/\d+/, 'number'], [/[{}()[\]]/, '@brackets'], [/:=|=>|→|←|∀|∧|∨|[+*=<>:|·]/, 'operator']],
       comment: [[/\/-/, 'comment', '@push'], [/-\//, 'comment', '@pop'], [/[^/-]+/, 'comment'], [/./, 'comment']],
@@ -64,6 +64,6 @@ export function LeanEditor({ id, value, onChange, theme, diagnostics, onCursor, 
   return <Editor height="100%" language="lean4" path={`file:///${id}.lean`} value={value} theme={`lean-${theme}`}
     beforeMount={configure} onChange={next => onChange(next ?? '')}
     onMount={(instance, monaco) => { editorRef.current = instance; monacoRef.current = monaco; onReady(instance); instance.onDidChangeCursorPosition(event => onCursor(event.position.lineNumber, event.position.column)); updateMarkers(); }}
-    loading={<div className="editor-loading">Opening your editor<span className="loading-dots">…</span></div>}
+    loading={<div className="editor-loading">Loading editor<span className="loading-dots">…</span></div>}
     options={{ fontSize: 14, lineHeight: 26, fontFamily: "'Geist Mono', 'SFMono-Regular', Consolas, monospace", fontLigatures: true, minimap: { enabled: false }, padding: { top: 27, bottom: 24 }, scrollBeyondLastLine: false, renderLineHighlight: 'line', overviewRulerLanes: 0, hideCursorInOverviewRuler: true, lineNumbersMinChars: 4, glyphMargin: false, folding: true, automaticLayout: true, tabSize: 2, wordWrap: 'on', smoothScrolling: true, bracketPairColorization: { enabled: false }, guides: { indentation: true }, scrollbar: { verticalScrollbarSize: 6, horizontalScrollbarSize: 6 }, ariaLabel: 'Lean source code editor', quickSuggestions: false, suggestOnTriggerCharacters: true }} />;
 }
