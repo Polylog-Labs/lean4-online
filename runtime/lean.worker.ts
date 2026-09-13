@@ -41,7 +41,9 @@ function downloadProgress() {
   const loaded = download.received + download.cached;
   if (loaded > 0 && loaded < download.total && now - lastDownloadUpdate < 100) return;
   lastDownloadUpdate = now;
-  self.postMessage({ type: 'progress', message: download.cached > 0 && download.received === 0 ? 'Loading cached Lean compiler' : 'Downloading Lean compiler', download: { ...download } });
+  const message = download.received > 0 ? 'Downloading Lean compiler'
+    : download.cached > 0 ? 'Loading Lean compiler from device storage' : 'Checking device storage for Lean';
+  self.postMessage({ type: 'progress', message, download: { ...download } });
 }
 function output(stream: 'stdout' | 'stderr', text: string) {
   const moduleProgress = /\[DEBUG:PROGRESS\]\s*(\d+)\/(\d+)/.exec(text);

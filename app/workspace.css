@@ -20,6 +20,7 @@
 .compiler-info strong { font-weight: 500; }
 .compiler-info p { margin: 4px 0 0; color: var(--muted); line-height: 1.6; }
 .compiler-info .icon-button { flex-shrink: 0; }
+.compiler-transfer-summary { color: var(--muted); font-size: 11px; line-height: 1.5; margin: 12px 0 0; }
 .safari-badge { display: inline-flex; flex-shrink: 0; color: var(--amber); }
 .example-item .safari-badge { margin-left: auto; }
 .safari-notice { display: flex; align-items: flex-start; gap: 8px; padding: 8px 12px; background: var(--sidebar); border-bottom: 1px solid var(--border); font-size: 11px; flex-shrink: 0; }

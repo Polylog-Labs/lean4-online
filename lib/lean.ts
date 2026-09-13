@@ -1,8 +1,9 @@
 import type { ExecutionMode } from './content';
+import type { DownloadProgress } from '../runtime/config';
 
 export interface Diagnostic { severity: 'error' | 'warning' | 'information'; message: string; line: number; column: number; endLine: number; endColumn: number }
 export interface OutputLine { stream: 'stdout' | 'stderr'; text: string }
-export interface RunResult { success: boolean; elapsed: number; diagnostics: Diagnostic[]; output: OutputLine[]; incomplete: boolean }
+export interface RunResult { success: boolean; elapsed: number; diagnostics: Diagnostic[]; output: OutputLine[]; incomplete: boolean; compilerDownload?: DownloadProgress | null }
 
 export function parseLeanLine(text: string, stream: 'stdout' | 'stderr'): { diagnostic?: Diagnostic; output?: OutputLine } {
   try {

@@ -72,6 +72,8 @@ try {
       const download = await page.evaluate<DownloadProgress>('window.leanDownloads.at(-1)');
       assert.equal(download.received, 0);
       assert.equal(download.cached, download.total);
+      await expect(page.getByLabel('Compiler transfer', { exact: true })).toContainText('No compiler data downloaded.');
+      await expect(page.getByLabel('Compiler transfer', { exact: true })).toContainText('loaded from device storage');
     }
   }
   // Restore the initial editor state before testing its layout controls.
@@ -219,7 +221,9 @@ try {
   await input.fill('def main : IO Unit := IO.println missingValue');
   await mobile.getByRole('button', { name: 'Run program' }).click();
   const diagnostic = mobile.locator('.diagnostic').first();
-  await expect(diagnostic).toContainText('missingValue');
+  // Safari reloads cached compiler data before producing diagnostics. The CI
+  // runner can need more than the default five seconds for this initialization.
+  await expect(diagnostic).toContainText('missingValue', { timeout: 60_000 });
   await diagnostic.click();
   await expect(input).toBeFocused();
   assert.ok(await input.evaluate(() => (window.getSelection()?.anchorOffset ?? 0) > 0), 'A diagnostic focuses the reported source position');

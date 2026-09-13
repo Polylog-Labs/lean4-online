@@ -12,8 +12,10 @@ export function useLean(editorReady = false) {
   const [version, setVersion] = useState('Lean 4');
   const worker = useRef<Worker | null>(null);
   const runtimeCache = useRef<Cache | null>(null);
+  const workerReady = useRef(false);
+  const initializationDownload = useRef<DownloadProgress | undefined>(undefined);
   const init = useRef<{ promise: Promise<void>; resolve(): void; reject(error: Error): void } | null>(null);
-  const pending = useRef<{ id: number; lines: OutputLine[]; resolve(result: RunResult): void; reject(error: Error): void } | null>(null);
+  const pending = useRef<{ id: number; lines: OutputLine[]; compilerDownload?: DownloadProgress | null; resolve(result: RunResult): void; reject(error: Error): void } | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const nextId = useRef(0);
   const backgroundStarted = useRef(false);
@@ -23,6 +25,7 @@ export function useLean(editorReady = false) {
     generation.current++;
     clearTimer();
     worker.current?.terminate(); worker.current = null;
+    workerReady.current = false;
     init.current?.reject(new Error(message)); init.current = null;
     pending.current?.reject(new Error(message)); pending.current = null;
     setState(errorState ? 'error' : 'idle'); setProgress(message);
@@ -35,7 +38,8 @@ export function useLean(editorReady = false) {
       throw new Error('Lean needs cross-origin isolation. Open this app directly in a browser tab with its COOP/COEP hosting headers enabled.');
     }
     if (typeof DecompressionStream === 'undefined') throw new Error('This browser cannot load Lean. Please use a current desktop Chrome, Firefox, or Safari.');
-    setState('loading'); setProgress('Loading Lean'); setDownload(null);
+    setState('loading'); setProgress('Checking for a cached Lean compiler'); setDownload(null);
+    workerReady.current = false; initializationDownload.current = undefined;
     let resolve!: () => void, reject!: (error: Error) => void;
     const promise = new Promise<void>((res, rej) => { resolve = res; reject = rej; });
     init.current = { promise, resolve, reject };
@@ -46,7 +50,10 @@ export function useLean(editorReady = false) {
       instance.onmessage = async (event) => {
         if (worker.current !== instance) return;
         const message = event.data;
-        if (message.type === 'progress') { setProgress(message.message); setDownload(message.download ?? null); }
+        if (message.type === 'progress') {
+          setProgress(message.message);
+          if (message.download) { initializationDownload.current = message.download; setDownload(message.download); }
+        }
         if (message.type === 'ready') {
           if (usesWebKit(navigator.userAgent) && message.cacheName) {
             try {
@@ -57,6 +64,7 @@ export function useLean(editorReady = false) {
             } catch { /* Retain the compiler when cached downloads are unavailable. */ }
             if (worker.current !== instance) return;
           }
+          workerReady.current = true;
           clearTimer(); setState('ready'); setProgress('Lean is ready'); setDownload(null); setVersion(`Lean ${message.version}`); init.current?.resolve();
         }
         if (message.type === 'output' && message.id === pending.current?.id) pending.current?.lines.push({ stream: message.stream, text: message.text });
@@ -67,9 +75,10 @@ export function useLean(editorReady = false) {
             // WebKit can overflow on a later compilation even when that file
             // passes in a fresh worker. Reuse downloaded bytes, not this heap.
             instance.terminate(); worker.current = null; init.current = null;
+            workerReady.current = false;
             setState('idle'); setProgress('Ready for next run');
           } else { setState('ready'); setProgress('Lean is ready'); }
-          current.resolve(finishRun(message.success, message.elapsed, current.lines));
+          current.resolve({ ...finishRun(message.success, message.elapsed, current.lines), compilerDownload: current.compilerDownload });
         }
         if (message.type === 'error') reset(message.message, true);
       };
@@ -81,11 +90,12 @@ export function useLean(editorReady = false) {
 
   const run = useCallback(async (code: string): Promise<RunResult> => {
     if (pending.current) throw new Error('Another program is already running.');
+    const reuseCompiler = workerReady.current;
     await start();
     setState('running'); setProgress('Running your Lean code');
     return new Promise((resolve, reject) => {
       const id = ++nextId.current;
-      pending.current = { id, lines: [], resolve, reject };
+      pending.current = { id, lines: [], compilerDownload: reuseCompiler ? null : initializationDownload.current, resolve, reject };
       timer.current = setTimeout(() => reset('Execution stopped after 20 seconds. Try a smaller input or simpler proof.', true), 20_000);
       worker.current!.postMessage({ type: 'run', id, code });
     });
