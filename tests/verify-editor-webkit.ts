@@ -168,6 +168,15 @@ try {
   await mobile.getByRole('navigation', { name: 'Main navigation' }).getByRole('button', { name: 'Learn', exact: true }).click();
   await expect(mobile.getByRole('heading', { name: 'Write Lean. Think in proofs.' })).toBeVisible();
   await expect(mobile.getByRole('dialog', { name: 'Navigation' })).toHaveCount(0);
+  await mobile.setViewportSize({ width: 390, height: 844 });
+  await mobile.goto(new URL('/learn/curry-howard', url).href);
+  await mobile.getByRole('link', { name: 'Open exercise in editor' }).click();
+  await expect(mobile.locator('.guide-panel')).toBeVisible();
+  await mobile.getByRole('navigation', { name: 'Workspace panels' }).getByRole('button', { name: 'Code', exact: true }).click();
+  await expect(mobile.locator('.code-area')).toBeVisible();
+  await expect(mobile.locator('.code-area')).toHaveCSS('opacity', '1');
+  await expect(mobile.locator('.lean-keyword').first()).toHaveCSS('color', 'rgb(196, 164, 237)');
+  await expect(mobile.getByRole('navigation', { name: 'Workspace panels' }).getByRole('button', { name: 'Code', exact: true })).toHaveAttribute('aria-pressed', 'true');
   assert.deepEqual(mobileErrors, [], 'WebKit mobile errors');
   console.log('PASS WebKit mobile: highlighting, Unicode, indentation, no editor/runtime download before Run, real Lean output, diagnostic navigation, mobile panels, and the Learn introduction.');
 } finally { await browser.close(); }
