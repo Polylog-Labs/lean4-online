@@ -17,20 +17,20 @@ The first setup downloads a **277 MiB checksum-pinned Lean toolchain archive**. 
 
 All authored application code, setup scripts, and tests use TypeScript. There are no authored `.mjs` files. Generated Emscripten and Monaco assets are JavaScript and are ignored by Git.
 
-The page is prerendered as static content for CDN caching. Desktop browsers preload Monaco and prepare Lean in the background after the editor is ready. Phones and touch devices use a native text editor with a symbol toolbar, indentation, Unicode abbreviations, and diagnostic navigation. They do not download Monaco or start Lean until **Run** or **Check** is pressed. Desktop users can also edit in the native field while Monaco loads.
+The page is prerendered as static content for CDN caching. Desktop browsers preload Monaco and prepare Lean in the background after the editor is ready. Phones and touch devices use a lightweight CodeMirror editor with syntax highlighting, a symbol toolbar, indentation, Unicode abbreviations, search, undo/redo, and diagnostic navigation. They do not download Monaco or start Lean until **Run** or **Check** is pressed. Desktop users can also edit in the native field while Monaco loads.
 
-The WASM heap starts at **64 MiB** and grows as needed, replacing the previous 1 GiB starting allocation. In the Chromium smoke test, the heap reached approximately **133 MiB** when ready and **275 MiB** after running all 46 examples. These measurements exclude JavaScript, library files, and browser overhead; they are not total tab memory. Physical mobile-device testing is still needed to establish practical memory limits.
+The WASM heap starts at **64 MiB** and grows as needed, replacing the previous 1 GiB starting allocation. In the Chromium smoke test, the heap reached approximately **133 MiB** when ready and **275 MiB** after running all 47 examples. These measurements exclude JavaScript, library files, and browser overhead; they are not total tab memory. Physical mobile-device testing is still needed to establish practical memory limits.
 
 ## What works
 
-- Monaco on desktop and a native text editor on mobile; Unicode input, independent file tabs, and source-position diagnostics.
-- 46 runnable examples: core-library imports, mathematical notation, 13 programming/proof foundations, 25 explorations from the mathematical Top 100 list, the quadratic equation, rings, GF(5), GF(4), Diffie–Hellman, and toy RSA.
+- Monaco on desktop and CodeMirror on mobile; syntax highlighting, Unicode input, independent file tabs, and source-position diagnostics. The mobile editor is limited to 150 KB compressed (excluding shared React) by a CI check.
+- 47 runnable examples: a runnable Welcome.lean, core-library imports, mathematical notation, 13 programming/proof foundations, 25 explorations from the mathematical Top 100 list, the quadratic equation, rings, GF(5), GF(4), Diffie–Hellman, and toy RSA.
 - A compact header and left navigation: Examples, Playground, Learn, Syntax. Collapsible, searchable example groups.
 - A personal My files directory with program/proof starters, create, rename, download, delete, and independent tabs. Copy any example into Playground; closing a tab retains your file.
 - 10 lessons with editable exercises, hints, solutions, and Lean-checked completion. Incorrect answers and `sorry` placeholders do not complete a lesson.
 - 71 syntax reference entries with explanations, Unicode input shortcuts, and editable snippets that open in Playground.
 - Run/check/stop, execution timeout, bounded output, and worker recovery.
-- Dark mode by default, with light and system themes in Settings; responsive panels; keyboard shortcuts; resizable console.
+- Dark mode by default, with light and system themes in Settings; keyboard shortcuts; resizable explorer, guide, and console with saved layout preferences. Mobile uses a navigation drawer and separate Code, Output, and Guide views.
 - Device-local autosave and lesson progress; Unicode-safe share links; `.lean` file downloads. Original v1 drafts migrate automatically to a file store with separately tracked tabs.
 - Reset individual lessons or all completed lesson progress in Settings without deleting code.
 - A Zcash donation address and copy button in Settings.
@@ -77,7 +77,7 @@ npm run build
 
 `test:lean` executes every example, every syntax snippet, every lesson solution, and every unfinished starter against the actual pinned WASM binary. It also checks negative proofs/type errors. If native Lean is installed, it verifies `lean --run` for every program and the Lake executable workflow.
 
-CI runs on every push and pull request via `.github/workflows/ci.yml`: TypeScript, lint, unit tests, all 46 examples, 71 syntax snippets, and lesson checks in WASM, native programs with Lean 4.33.1, a Lake executable, the production build, and all examples in Chromium. Chromium checks direct CORS downloads, live progress, cache reuse, and a WASM heap below 512 MiB for the collection. WebKit checks desktop startup ordering and mobile editing, Unicode input, program execution, and diagnostic navigation. Native Lean is mandatory in CI. The toolchains are cached by version. The browser suite yields between compiles to catch runtime shutdowns between user actions.
+CI runs on every push and pull request via `.github/workflows/ci.yml`: TypeScript, lint, unit tests, all 47 examples, 71 syntax snippets, and lesson checks in WASM, native programs with Lean 4.33.1, a Lake executable, the production build, and all examples in Chromium. Chromium checks direct CORS downloads, live progress, cache reuse, and a WASM heap below 512 MiB for the collection. WebKit checks desktop startup ordering, panel resizing and persistence, mobile highlighting, Unicode input, file switching, undo/redo, program execution, and diagnostic navigation. Native Lean is mandatory in CI. The toolchains are cached by version. The browser suite yields between compiles to catch runtime shutdowns between user actions.
 
 To run the production browser smoke test locally after building:
 

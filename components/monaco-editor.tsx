@@ -7,6 +7,7 @@ import type { LeanEditorProps } from '../lib/editor';
 import { PlainEditor } from './plain-editor';
 import '../public/editor/editor.css';
 import { unicodeSymbols } from '../lib/unicode';
+import { leanKeywords, leanTactics, leanTypes } from '../lib/lean-tokens';
 
 let configured = false;
 function configure(monaco: Monaco) {
@@ -20,9 +21,9 @@ function configure(monaco: Monaco) {
   });
   monaco.languages.setMonarchTokensProvider('lean4', {
     unicode: true,
-    keywords: ['def', 'theorem', 'example', 'by', 'where', 'inductive', 'structure', 'deriving', 'match', 'with', 'fun', 'let', 'in', 'do', 'if', 'then', 'else', 'for', 'return', 'import', 'open', 'namespace', 'end', 'class', 'instance', 'variable', 'universe', 'section', 'local', 'notation', 'infixl', 'infixr', 'mut', 'termination_by', 'partial', 'private', 'protected', 'noncomputable', 'opaque', 'axiom', 'abbrev'],
-    tactics: ['rfl', 'simp', 'rw', 'exact', 'intro', 'intros', 'apply', 'constructor', 'cases', 'induction', 'decide', 'omega', 'grind', 'rcases', 'obtain', 'unfold', 'sorry', 'have', 'show', 'calc', 'funext', 'by_cases', 'classical', 'simpa', 'change'],
-    typeKeywords: ['Nat', 'Int', 'String', 'Bool', 'List', 'Array', 'Option', 'IO', 'Unit', 'Prop', 'Type', 'Repr', 'Fin', 'Decidable', 'DecidablePred'],
+    keywords: [...leanKeywords],
+    tactics: [...leanTactics],
+    typeKeywords: [...leanTypes],
     tokenizer: {
       root: [[/--.*$/, 'comment'], [/\/-/, 'comment', '@comment'], [/(#eval|#check|#print|#reduce)\b/, 'keyword'], [/s!"/, 'string', '@string'], [/"/, 'string', '@string'], [/[\p{L}_][\p{L}\p{N}_'?!]*/u, { cases: { '@keywords': 'keyword', '@tactics': 'keyword.tactic', '@typeKeywords': 'type', '@default': 'identifier' } }], [/\d+/, 'number'], [/[{}()[\]]/, '@brackets'], [/:=|=>|→|←|∀|∃|∧|∨|¬|↔|≠|≤|≥|∈|∉|∣|×|∘|▸|⊢|[+*=<>:|·]/, 'operator']],
       comment: [[/\/-/, 'comment', '@push'], [/-\//, 'comment', '@pop'], [/[^/-]+/, 'comment'], [/./, 'comment']],
@@ -48,7 +49,7 @@ function configure(monaco: Monaco) {
     },
   });
 }
-export function MonacoEditor({ id, value, onChange, theme, diagnostics, onCursor, onReady }: LeanEditorProps) {
+export function MonacoEditor({ id, value, onChange, theme, diagnostics, onCursor, onReady, fontSize }: LeanEditorProps) {
   const [editorReady, setEditorReady] = useState(false);
   const [loadError, setLoadError] = useState(false);
   const monacoRef = useRef<Monaco | null>(null);
@@ -71,5 +72,5 @@ export function MonacoEditor({ id, value, onChange, theme, diagnostics, onCursor
     beforeMount={configure} onChange={next => onChange(next ?? '')}
     onMount={(instance, monaco) => { editorRef.current = instance; monacoRef.current = monaco; onReady({ focusAt(line, column) { instance.revealLineInCenter(line); instance.setPosition({ lineNumber: line, column }); instance.focus(); } }, true); instance.onDidChangeCursorPosition(event => onCursor(event.position.lineNumber, event.position.column)); updateMarkers(); }}
     loading={<PlainEditor value={value} onChange={onChange} onCursor={onCursor} onReady={onReady} notice="Loading syntax highlighting…" />}
-    options={{ fontSize: 14, lineHeight: 26, fontFamily: "'Geist Mono', 'SFMono-Regular', Consolas, monospace", fontLigatures: true, minimap: { enabled: false }, padding: { top: 27, bottom: 24 }, scrollBeyondLastLine: false, renderLineHighlight: 'line', overviewRulerLanes: 0, hideCursorInOverviewRuler: true, lineNumbersMinChars: 4, glyphMargin: false, folding: true, automaticLayout: true, tabSize: 2, wordWrap: 'on', smoothScrolling: true, bracketPairColorization: { enabled: false }, guides: { indentation: true }, scrollbar: { verticalScrollbarSize: 6, horizontalScrollbarSize: 6 }, ariaLabel: 'Lean source code editor', quickSuggestions: false, suggestOnTriggerCharacters: true }} /> : <PlainEditor value={value} onChange={onChange} onCursor={onCursor} onReady={onReady} notice={loadError ? 'Syntax highlighting unavailable. You can still edit and run.' : 'Loading syntax highlighting…'} />}</>;
+    options={{ fontSize, lineHeight: Math.round(fontSize * 1.6), fontFamily: "'Geist Mono', 'SFMono-Regular', Consolas, monospace", fontLigatures: true, minimap: { enabled: false }, padding: { top: 12, bottom: 12 }, scrollBeyondLastLine: false, renderLineHighlight: 'line', overviewRulerLanes: 0, hideCursorInOverviewRuler: true, lineNumbersMinChars: 3, glyphMargin: false, folding: true, automaticLayout: true, tabSize: 2, wordWrap: 'on', smoothScrolling: true, bracketPairColorization: { enabled: false }, guides: { indentation: true }, scrollbar: { verticalScrollbarSize: 6, horizontalScrollbarSize: 6 }, ariaLabel: 'Lean source code editor', quickSuggestions: false, suggestOnTriggerCharacters: true }} /> : <PlainEditor value={value} onChange={onChange} onCursor={onCursor} onReady={onReady} notice={loadError ? 'Syntax highlighting unavailable. You can still edit and run.' : 'Loading syntax highlighting…'} />}</>;
 }

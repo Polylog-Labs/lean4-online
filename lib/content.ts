@@ -9,6 +9,14 @@ export interface Example {
 }
 export const examples: Example[] = [
   {
+    id: 'welcome', title: 'Welcome', file: 'Welcome.lean', category: 'Getting started', mode: 'program',
+    description: 'Run a program, check a proof, and find your way around leanlab.',
+    code: `-- Welcome to leanlab. This is a runnable Lean file.\n-- Choose Run to check the proof and execute main.\n\ndef double (n : Nat) : Nat := n + n\n\n-- A proof: double n is equal to n + n by definition.\n-- rfl stands for reflexivity.\nexample (n : Nat) : double n = n + n := by\n  rfl\n\ndef main : IO Unit := do\n  IO.println "Welcome to leanlab."\n  IO.println s!"double 21 = {double 21}"\n\n/-\nExamples   Browse editable programs and proofs.\nPlayground Create, rename, and download your own files.\nLearn      Follow lessons and check your exercises.\nSyntax     Look up Lean keywords and mathematical symbols.\n\nOpen Guide for an explanation of this file.\nRun locally explains how to use Lean on your computer.\nYour files and lesson progress are saved on this device.\n-/\n`,
+    expected: 'Welcome to leanlab.\ndouble 21 = 42',
+    concepts: [{ token: 'def', explanation: 'Defines a value or a function. double accepts a natural number and returns its sum with itself.' }, { token: 'example … := by rfl', explanation: 'States an unnamed proposition and proves it by reflexivity: both sides reduce to the same expression.' }, { token: 'main : IO Unit', explanation: 'The entry point of a program. IO.println writes a line to Output.' }],
+    challenge: 'Change 21 to another natural number and run the file again. Then open Learn for guided exercises.',
+  },
+  {
     id: 'hello', title: 'Hello, world', file: 'Hello.lean', category: 'Getting started', mode: 'program',
     description: 'Define a function and print its result from main.',
     code: `-- Define a greeting function and run it from main.\n\ndef greet (name : String) : String :=\n  s!"Hello, {name}!"\n\ndef main : IO Unit := do\n  IO.println (greet "world")\n  IO.println "Welcome to Lean Lab."\n`,

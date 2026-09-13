@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import "./workspace.css";
+import { desktopMedia } from '../lib/layout';
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -29,7 +31,7 @@ export default function RootLayout({
   return (
     <html lang="en" data-theme="dark" suppressHydrationWarning>
       <head>
-        <link rel="preload" href="/editor/editor.js" as="script" media="(min-width: 701px) and (pointer: fine)" />
+        <link rel="preload" href="/editor/editor.js" as="script" media={desktopMedia} />
       </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}

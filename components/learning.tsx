@@ -5,15 +5,14 @@ import { examples, lessons, syntax, type Example, type Lesson } from '../lib/con
 import type { OpenFile } from '../lib/workspace';
 import type { SyntaxEntry } from '../lib/syntax';
 
-export function Guide({ file, example, lesson, complete, onClose, onExample, onLesson, onLearn, onSyntax, onDownload, onEdit }: {
-  file: OpenFile; example?: Example; lesson?: Lesson; complete: boolean; onClose(): void; onExample(example: Example): void;
+export function Guide({ file, example, lesson, complete, tab, onTabChange, onClose, onExample, onLesson, onLearn, onSyntax, onDownload, onEdit }: {
+  file: OpenFile; example?: Example; lesson?: Lesson; complete: boolean; tab: 'guide' | 'run'; onTabChange(tab: 'guide' | 'run'): void; onClose(): void; onExample(example: Example): void;
   onLesson(lesson: Lesson): void; onLearn(): void; onSyntax(): void; onDownload(): void; onEdit(code: string): void;
 }) {
-  const [tab, setTab] = useState<'guide' | 'run'>('guide');
   const [hint, setHint] = useState(false);
   const [solution, setSolution] = useState(false);
   return <aside className="guide-panel" aria-label="Code explanation">
-    <div className="guide-tabs"><button className={tab === 'guide' ? 'active' : ''} onClick={() => setTab('guide')}><BookOpen size={14} />{lesson ? 'Lesson' : 'Guide'}</button><button className={tab === 'run' ? 'active' : ''} onClick={() => setTab('run')}><Terminal size={14} />Run locally</button><button className="icon-button guide-close" aria-label="Close guide" onClick={onClose}><X size={14} /></button></div>
+    <div className="guide-tabs"><button className={tab === 'guide' ? 'active' : ''} onClick={() => onTabChange('guide')}><BookOpen size={14} />{lesson ? 'Lesson' : 'Guide'}</button><button className={tab === 'run' ? 'active' : ''} onClick={() => onTabChange('run')}><Terminal size={14} />Run locally</button><button className="icon-button guide-close" aria-label="Close guide" onClick={onClose}><X size={14} /></button></div>
     <div className="guide-scroll">{tab === 'run' ? <>
       <h2>Run Lean locally</h2><p className="guide-description">Run a downloaded file with Lean, or use Lake to build a native executable.</p>
       <div className="guide-section"><h3><span>01</span>Run the source</h3><p>Install Lean, download your file, and run it from the directory containing the file:</p><div className="terminal-snippet"><span>$</span><code>lean {file.mode === 'program' ? '--run ' : ''}{file.title}</code></div><button className="button button-quiet full-width" onClick={onDownload}><ArrowDownToLine size={14} />Download {file.title}</button></div>

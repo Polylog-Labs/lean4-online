@@ -1,0 +1,183 @@
+/* Desktop workspace: docked panels share the available viewport. */
+.app-shell { min-height: 420px; }
+.navigation-pane { display: flex; flex-shrink: 0; min-height: 0; }
+.app-shell .activity-rail { width: 60px; padding: 10px 4px; border-right: 1px solid var(--border); }
+.app-shell .rail-button { height: 53px; gap: 5px; }
+.app-shell .rail-button span { font-size: 8px; }
+.app-shell .rail-button:nth-child(3) { margin-top: 5px; }
+.app-shell .explorer { position: static; width: var(--sidebar-width); min-width: var(--sidebar-width); box-shadow: none; border-right: 0; }
+.explorer-heading { height: 42px; padding: 8px 12px; letter-spacing: .8px; }
+.search-field { margin: 4px 10px 16px; }
+.app-shell .example-item { font-size: 11px; padding: 7px 8px 7px 20px; }
+.example-group { margin-bottom: 9px; }
+.sidebar-bridge { padding: 10px; margin: 10px; }
+.main-area { min-height: 0; }
+.app-shell .editor-heading { display: none; }
+.app-shell .editor-workspace { padding: 0; }
+.app-shell .editor-column { border: 0; border-radius: 0; box-shadow: none; }
+.app-shell .code-area { min-height: 80px; opacity: 1; }
+.app-shell .guide-panel { position: static; width: var(--guide-width); max-width: 38vw; border: 0; border-radius: 0; box-shadow: none; }
+.app-shell .guide-tabs { height: 38px; min-height: 38px; padding: 0 12px; gap: 16px; }
+.app-shell .guide-close { display: flex; margin: auto 0 auto auto; }
+.app-shell .guide-scroll { padding: 20px; }
+.guide-scroll h2 { font-size: 22px; }
+.guide-section { margin-top: 22px; }
+.guide-description, .lesson-paragraph { font-size: 12px; }
+.guide-collapsed .guide-panel, .console-collapsed .console, .console-collapsed .console-divider { display: none; }
+.panel-resizer { flex-shrink: 0; touch-action: none; position: relative; background: var(--border); }
+.panel-resizer.vertical { width: 4px; cursor: col-resize; }
+.panel-resizer.horizontal { height: 4px; width: 100%; cursor: row-resize; }
+.panel-resizer:hover, .panel-resizer:focus-visible { background: var(--accent); outline: none; }
+.console-divider { flex-shrink: 0; }
+.app-shell .console { min-height: 100px; }
+.app-shell .console-tabs { height: 35px; padding: 0 12px; }
+.console-content { padding: 16px 20px; }
+.console-actions { gap: 8px; }
+.empty-console { padding-top: 8px; }
+.monaco-editor .line-numbers { font-size: 11px; }
+.navigation-toggle, .file-picker, .mobile-panels, .drawer-backdrop { display: none; }
+.statusbar { height: 24px; min-height: 24px; }
+.status-save { color: var(--soft); }
+
+/* A single toolbar contains execution, files, and panel controls. */
+.ide-toolbar { display: flex; align-items: center; height: 38px; min-height: 38px; background: var(--sidebar); border-bottom: 1px solid var(--border); gap: 0; z-index: 6; }
+.run-control { display: flex; align-items: stretch; flex-shrink: 0; padding: 4px 6px; }
+.run-control > .button { min-height: 28px; height: 28px; border-radius: 4px 0 0 4px; font-size: 11px; padding: 3px 10px; gap: 6px; }
+.run-control > .action-menu > summary { min-height: 28px; height: 28px; width: 24px; background: var(--accent); color: #251b35; border-left: 1px solid #0002; border-radius: 0 4px 4px 0; }
+.ide-toolbar .file-tabs { flex: 1; min-width: 0; height: 38px; min-height: 38px; border: 0; scrollbar-width: thin; }
+.ide-toolbar .file-tab { padding-right: 3px; }
+.ide-toolbar .file-tab > button:first-child { padding: 0 10px; gap: 7px; font-size: 11px; }
+.ide-toolbar .file-tab.active { background: var(--surface); }
+.ide-toolbar .file-tab.active:before { height: 2px; top: auto; bottom: 0; }
+.ide-toolbar .lean-file-icon { font-size: 17px; }
+.ide-toolbar .new-file { margin: auto 4px; }
+.panel-actions { display: flex; align-items: stretch; height: 100%; padding-left: 5px; border-left: 1px solid var(--border); }
+.panel-actions > button { display: flex; gap: 5px; align-items: center; justify-content: center; color: var(--muted); padding: 0 8px; font-size: 10px; white-space: nowrap; }
+.panel-actions > button:hover, .panel-actions > button[aria-pressed="true"] { background: var(--accent-faint); color: var(--accent); }
+.action-menu { position: relative; flex-shrink: 0; }
+.action-menu > summary { list-style: none; display: flex; align-items: center; justify-content: center; gap: 6px; cursor: pointer; min-height: 34px; min-width: 30px; color: var(--muted); }
+.action-menu > summary::-webkit-details-marker { display: none; }
+.action-menu[open] > summary, .action-menu > summary:hover { background: var(--accent-faint); color: var(--accent); }
+.action-menu-content { position: absolute; top: calc(100% + 3px); right: 0; min-width: 200px; max-width: min(300px, calc(100vw - 16px)); max-height: min(420px, calc(100dvh - 140px)); overflow-y: auto; padding: 5px; z-index: 30; background: var(--surface-raised); border: 1px solid var(--border-strong); border-radius: 6px; box-shadow: 0 8px 24px #0003; }
+.run-control .action-menu-content { right: auto; left: -65px; }
+.action-menu-content > button { display: flex; align-items: center; gap: 10px; text-align: left; width: 100%; min-height: 34px; padding: 8px 10px; font-size: 12px; color: var(--text); border-radius: 4px; }
+.action-menu-content > button:hover, .action-menu-content > button:focus-visible, .action-menu-content > button[aria-current="true"] { background: var(--accent-soft); }
+.action-menu-content > button > svg:last-child:not(:first-child) { margin-left: auto; }
+.menu-field { display: flex; flex-direction: column; gap: 8px; padding: 10px; font-size: 11px; color: var(--muted); border-top: 1px solid var(--border); }
+.menu-field select { color: var(--text); background: var(--canvas); border: 1px solid var(--border); border-radius: 4px; padding: 8px; font: inherit; }
+.editor-font-setting { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; font-size: 12px; margin-bottom: 18px; }
+.editor-font-setting span { margin-left: auto; color: var(--muted); }
+.editor-font-setting input { width: 100%; accent-color: var(--accent); }
+
+/* Lean highlighting in the mobile editor uses the same palette as Monaco. */
+.lean-keyword, .lean-operator { color: var(--accent-dark); }
+.lean-tactic { color: #b87730; }
+.lean-type { color: #167c94; }
+.lean-string { color: #398668; }
+.lean-number { color: #c1723a; }
+.lean-comment { color: #888391; }
+[data-theme="dark"] .lean-tactic { color: #e5b97b; }
+[data-theme="dark"] .lean-type { color: #86c8d2; }
+[data-theme="dark"] .lean-string { color: #9bc8a6; }
+[data-theme="dark"] .lean-number { color: #dea97f; }
+[data-theme="dark"] .lean-comment { color: #928b9c; }
+.mobile-editor { display: flex; flex-direction: column; height: 100%; width: 100%; min-height: 0; }
+.mobile-editor-host { flex: 1; min-height: 0; overflow: hidden; }
+.mobile-editor-tools { display: flex; gap: 2px; padding: 0 8px; border-top: 1px solid var(--border); flex-shrink: 0; }
+.mobile-editor-tools button { display: flex; align-items: center; justify-content: center; min-width: 44px; height: 40px; gap: 6px; color: var(--muted); font-size: 12px; }
+.mobile-editor-tools button:first-child { margin-right: auto; font-size: 18px; }
+.mobile-editor-tools button span { font-size: 11px; }
+.mobile-editor-tools button.active, .mobile-editor-tools button:hover { color: var(--accent); }
+.mobile-editor .symbol-toolbar { padding: 0 6px; }
+.mobile-editor .symbol-toolbar button { min-width: 40px; height: 40px; font-size: 18px; }
+
+/* Phones and touch devices show one workspace panel at a time. */
+@media (max-width: 900px), (pointer: coarse) {
+  html, body { overflow: hidden; }
+  .app-shell { position: fixed; width: 100%; top: var(--viewport-top, 0px); height: var(--viewport-height, 100dvh); min-height: 0; }
+  .app-shell .topbar { padding: 0 12px 0 6px; height: 46px; gap: 7px; }
+  .topbar .brand { font-size: 20px; }
+  .topbar .brand-mark { width: 23px; height: 25px; font-size: 21px; }
+  .navigation-toggle { display: flex; width: 38px; height: 44px; }
+  .navigation-pane { display: none; }
+  .drawer-open .navigation-pane { display: flex; position: absolute; top: 46px; left: 0; bottom: 0; width: min(340px, 92vw); z-index: 51; flex-direction: column; background: var(--sidebar); border-right: 1px solid var(--border-strong); box-shadow: 8px 0 30px #0003; }
+  .drawer-backdrop { display: block; position: absolute; inset: 46px 0 0; z-index: 50; background: #0006; }
+  .app-shell .activity-rail { width: 100%; padding: 8px; border: 0; border-bottom: 1px solid var(--border); display: flex; flex-direction: row; align-items: stretch; gap: 8px; }
+  .app-shell .activity-rail > div:first-child { display: grid; grid-template-columns: 1fr 1fr; gap: 3px; }
+  .app-shell .activity-rail > div:last-child { width: 52px; }
+  .app-shell .rail-button { flex-direction: row; justify-content: flex-start; padding: 10px; gap: 8px; height: 44px; margin: 0; }
+  .app-shell .rail-button span { font-size: 11px; }
+  .app-shell .rail-button svg { width: 17px; height: 17px; }
+  .app-shell .activity-rail > div:last-child .rail-button { flex-direction: column; justify-content: center; height: 100%; padding: 6px; }
+  .app-shell .activity-rail > div:last-child .rail-button span { font-size: 9px; }
+  .app-shell .explorer, .app-shell.sidebar-collapsed .explorer { display: flex; position: static; width: 100%; min-width: 0; border: 0; flex: 1; }
+  .app-shell .explorer-heading { height: 42px; min-height: 42px; padding: 4px 12px; }
+  .app-shell .explorer-heading button { width: 40px; height: 40px; }
+  .search-field { height: 40px; margin-bottom: 10px; }
+  .search-field input { font-size: 16px; }
+  .search-field kbd { display: none; }
+  .app-shell .example-item, .personal-file-name, .reference-nav { min-height: 44px; font-size: 13px; }
+  .group-heading { min-height: 38px; font-size: 12px; }
+  .sidebar-bridge { margin-top: 8px; margin-bottom: 8px; }
+  .app-shell .panel-resizer { display: none; }
+  .app-shell .workspace-heading { height: 50px; padding: 0 18px; }
+  .workspace-heading .sidebar-toggle { display: none; }
+  .workspace-heading h1 { font-size: 20px; }
+  .app-shell .editor-heading { display: none; }
+  .app-shell .editor-workspace { position: relative; display: block; padding: 0; flex: 1; min-height: 0; }
+  .app-shell .editor-column { height: 100%; width: 100%; border: 0; border-radius: 0; }
+  .ide-toolbar { height: 46px; min-height: 46px; padding: 0 6px; z-index: 7; }
+  .ide-toolbar .file-tabs, .panel-actions { display: none; }
+  .ide-toolbar .file-picker { display: block; order: 0; min-width: 0; flex: 1; }
+  .file-picker > summary { justify-content: flex-start; height: 44px; padding: 0 6px; font-size: 13px; }
+  .file-picker > summary > span:nth-child(2) { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+  .file-picker > summary > svg { flex-shrink: 0; }
+  .file-picker .action-menu-content { right: auto; left: 0; }
+  .ide-toolbar .run-control { order: 1; padding: 4px 3px; }
+  .run-control > .button { height: 36px; min-height: 36px; padding: 0 10px; font-size: 12px; }
+  .run-control > .action-menu > summary { height: 36px; min-height: 36px; width: 30px; }
+  .run-control .action-menu-content { left: auto; right: 0; }
+  .file-actions { order: 2; }
+  .file-actions > summary { height: 44px; width: 36px; }
+  .action-menu-content > button { min-height: 44px; font-size: 13px; }
+  .menu-field select { font-size: 16px; }
+  .app-shell .code-area { min-height: 0; flex: 1; opacity: 1; }
+  .app-shell .plain-editor textarea { padding: 12px; font-size: 16px; line-height: 25px; }
+  .app-shell .console-divider, .app-shell .console { display: none; }
+  .app-shell .guide-panel { display: none; position: absolute; top: 46px; right: 0; bottom: 0; width: 100%; max-width: none; border: 0; border-radius: 0; z-index: 4; }
+  .app-shell[data-panel="output"] .code-area, .app-shell[data-panel="guide"] .code-area { display: none; }
+  .app-shell[data-panel="output"] .console { display: flex; height: auto !important; min-height: 0; flex: 1; }
+  .app-shell[data-panel="guide"] .guide-panel { display: flex; }
+  .app-shell .guide-tabs { height: 44px; min-height: 44px; gap: 22px; padding: 0 16px; }
+  .app-shell .guide-tabs > button:not(.icon-button) { font-size: 13px; }
+  .app-shell .guide-close { width: 40px; height: 40px; }
+  .app-shell .guide-scroll { padding: 18px 20px 28px; }
+  .guide-description, .concept > p, .lesson-paragraph, .guide-section > p { font-size: 13px; }
+  .app-shell .console-tabs { height: 44px; padding: 0 12px; }
+  .app-shell .console-tabs > div:first-child { gap: 20px; }
+  .app-shell .console-tabs > div:first-child > button { font-size: 12px; }
+  .console-actions > .icon-button { width: 36px; height: 40px; }
+  .console-actions .result-status { font-size: 10px; }
+  .close-output { display: none; }
+  .console-content { padding: 18px 16px; font-size: 13px; }
+  .first-run-note { font-size: 11px; line-height: 1.7; }
+  .mobile-panels { display: flex; height: 48px; min-height: 48px; border-top: 1px solid var(--border); background: var(--sidebar); padding-bottom: env(safe-area-inset-bottom, 0px); }
+  .mobile-panels > button { flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; font-size: 12px; color: var(--muted); border-top: 2px solid transparent; }
+  .mobile-panels > button[aria-pressed="true"] { border-top-color: var(--accent); color: var(--accent); background: var(--accent-faint); }
+  .mobile-panels small { color: var(--red); font-size: 10px; }
+  .app-shell .statusbar { height: 23px; min-height: 23px; padding: 0 10px; font-size: 9px; }
+  .statusbar > div { min-width: 0; gap: 6px; }
+  .statusbar > div:first-child > span:nth-child(2) { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+  .statusbar > div:last-child { display: none; }
+  .app-shell .status-download { width: 35px; }
+  .status-stop { flex-shrink: 0; }
+  .app-shell[data-keyboard="true"] .topbar, .app-shell[data-keyboard="true"] .mobile-panels, .app-shell[data-keyboard="true"] .statusbar { display: none; }
+  .learning-page, .syntax-page { padding: 8px 18px 30px; }
+  .learning-intro h2 { font-size: 30px; }
+  .lesson-grid, .syntax-grid { grid-template-columns: 1fr; }
+  .course-progress { display: none; }
+  .modal-content { padding: 24px; }
+  .modal input:not([type="range"]), .modal select { font-size: 16px; }
+  .modal-buttons { flex-wrap: wrap; }
+  .toast { bottom: 76px; }
+}

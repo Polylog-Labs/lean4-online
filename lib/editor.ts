@@ -6,6 +6,7 @@ export interface LeanEditorProps {
   value: string;
   onChange(value: string): void;
   theme: 'light' | 'dark';
+  fontSize: number;
   diagnostics: Diagnostic[];
   onCursor(line: number, column: number): void;
   onReady(editor: EditorHandle, enhanced: boolean): void;
