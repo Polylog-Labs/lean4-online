@@ -3,6 +3,8 @@ import { chromium } from '@playwright/test';
 import { existsSync } from 'node:fs';
 import { examples } from '../lib/content';
 import { finishRun, sourceForRun, type OutputLine } from '../lib/lean';
+import type { Monaco } from '@monaco-editor/react';
+import type { editor } from 'monaco-editor';
 
 const chrome = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
 const browser = await chromium.launch({ headless: true, ...(existsSync(chrome) ? { executablePath: chrome } : {}) });
@@ -11,6 +13,15 @@ try {
   // tsx preserves function names with this helper in serialized callbacks.
   await page.addInitScript({ content: 'globalThis.__name = (value) => value;' });
   await page.goto(process.env.LEAN_LAB_URL || 'http://localhost:3000');
+  await page.waitForFunction(() => {
+    const monaco = (window as typeof window & { leanlabMonaco?: Monaco }).leanlabMonaco;
+    return monaco?.editor.getModels().some((model: editor.ITextModel) => model.getLanguageId() === 'lean4');
+  });
+  const editorAsset = await page.request.get(new URL('/editor/editor.js', page.url()).href);
+  const editorCode = await editorAsset.text();
+  assert.ok(editorCode.includes('DOMPurify 3.4.15'), 'Served editor must use patched DOMPurify');
+  assert.ok(!editorCode.includes('DOMPurify 3.4.8'), 'Do not serve Monaco’s embedded old sanitizer');
+  console.log('PASS editor API: Lean model initialized and patched sanitizer served.');
   // Exercise the real browser worker protocol, without driving or inspecting UI.
   const cases = [...examples.map(example => sourceForRun(example.code, example.mode)), 'example : 2 + 2 = 5 := by rfl'];
   const results = await page.evaluate(async codes => {

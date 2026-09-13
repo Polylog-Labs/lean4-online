@@ -1,10 +1,10 @@
 'use client';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import Script from 'next/script';
 import Editor, { loader, type Monaco } from '@monaco-editor/react';
 import type { editor, Position } from 'monaco-editor';
 import type { Diagnostic } from '../lib/lean';
 
-loader.config({ paths: { vs: '/editor/vs' } });
 let configured = false;
 function configure(monaco: Monaco) {
   if (configured) return;
@@ -49,6 +49,8 @@ export function LeanEditor({ id, value, onChange, theme, diagnostics, onCursor, 
   id: string; value: string; onChange(value: string): void; theme: 'light' | 'dark'; diagnostics: Diagnostic[];
   onCursor(line: number, column: number): void; onReady(editor: editor.IStandaloneCodeEditor): void;
 }) {
+  const [editorReady, setEditorReady] = useState(false);
+  const [loadError, setLoadError] = useState(false);
   const monacoRef = useRef<Monaco | null>(null);
   const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
   function updateMarkers() {
@@ -61,9 +63,13 @@ export function LeanEditor({ id, value, onChange, theme, diagnostics, onCursor, 
   }
   // Monaco's validation is supplied by the actual Lean run, not JavaScript.
   useEffect(updateMarkers, [diagnostics, id]);
-  return <Editor height="100%" language="lean4" path={`file:///${id}.lean`} value={value} theme={`lean-${theme}`}
+  return <><Script src="/editor/editor.js" onReady={() => {
+    const monaco = (window as typeof window & { leanlabMonaco: Monaco }).leanlabMonaco;
+    loader.config({ monaco });
+    setEditorReady(true);
+  }} onError={() => setLoadError(true)} />{editorReady ? <Editor height="100%" language="lean4" path={`file:///${id}.lean`} value={value} theme={`lean-${theme}`}
     beforeMount={configure} onChange={next => onChange(next ?? '')}
     onMount={(instance, monaco) => { editorRef.current = instance; monacoRef.current = monaco; onReady(instance); instance.onDidChangeCursorPosition(event => onCursor(event.position.lineNumber, event.position.column)); updateMarkers(); }}
     loading={<div className="editor-loading">Loading editor<span className="loading-dots">…</span></div>}
-    options={{ fontSize: 14, lineHeight: 26, fontFamily: "'Geist Mono', 'SFMono-Regular', Consolas, monospace", fontLigatures: true, minimap: { enabled: false }, padding: { top: 27, bottom: 24 }, scrollBeyondLastLine: false, renderLineHighlight: 'line', overviewRulerLanes: 0, hideCursorInOverviewRuler: true, lineNumbersMinChars: 4, glyphMargin: false, folding: true, automaticLayout: true, tabSize: 2, wordWrap: 'on', smoothScrolling: true, bracketPairColorization: { enabled: false }, guides: { indentation: true }, scrollbar: { verticalScrollbarSize: 6, horizontalScrollbarSize: 6 }, ariaLabel: 'Lean source code editor', quickSuggestions: false, suggestOnTriggerCharacters: true }} />;
+    options={{ fontSize: 14, lineHeight: 26, fontFamily: "'Geist Mono', 'SFMono-Regular', Consolas, monospace", fontLigatures: true, minimap: { enabled: false }, padding: { top: 27, bottom: 24 }, scrollBeyondLastLine: false, renderLineHighlight: 'line', overviewRulerLanes: 0, hideCursorInOverviewRuler: true, lineNumbersMinChars: 4, glyphMargin: false, folding: true, automaticLayout: true, tabSize: 2, wordWrap: 'on', smoothScrolling: true, bracketPairColorization: { enabled: false }, guides: { indentation: true }, scrollbar: { verticalScrollbarSize: 6, horizontalScrollbarSize: 6 }, ariaLabel: 'Lean source code editor', quickSuggestions: false, suggestOnTriggerCharacters: true }} /> : <div className="editor-loading">{loadError ? 'Could not load the editor. Reload the page to retry.' : 'Loading editor…'}</div>}</>;
 }

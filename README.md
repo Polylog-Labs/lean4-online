@@ -4,7 +4,7 @@ A TypeScript learning environment for Lean 4: an online editor, executable progr
 
 ## Start locally
 
-Requirements: Node.js 22.13+ and npm. The setup script also uses `curl` and `tar` (available on macOS, Linux, and Vercel's build image).
+Requirements: Node.js 24.x and npm. `.nvmrc`, Vercel, and CI use the same Node major. The setup script also uses `curl` and `tar` (available on macOS, Linux, and Vercel's build image).
 
 ```sh
 npm ci
@@ -94,6 +94,8 @@ On macOS the test uses installed Google Chrome when available. Set `LEAN_LAB_URL
 ## Vercel
 
 Import `Polylog-Labs/lean4-online` into Vercel with the **Next.js** preset. The checked-in `vercel.json` selects `npm ci` and `npm run build`. No environment variables or database are needed. No proof-checking server is used.
+
+`package.json` pins Node to `24.x`, allowing patch updates without switching major versions. The `allowScripts` entries approve only the reviewed esbuild and unrs-resolver versions, whose install scripts locate or install their platform binaries. Review these entries when updating those packages. Monaco is bundled from ESM with the pinned DOMPurify patch, replacing its embedded older sanitizer as well as updating the dependency tree.
 
 The production build prepares its own checksum-verified runtime assets. Do not commit `node_modules`, `.cache`, `.next`, or generated `public/lean` and `public/editor` directories. Deploy from the Git integration so the runtime is prepared in the build environment rather than uploading the large local cache through the CLI.
 
