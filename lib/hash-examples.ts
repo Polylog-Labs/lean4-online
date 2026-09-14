@@ -1,5 +1,6 @@
 import type { Example } from './content';
 import { sha256Source } from './sha256-source';
+import { blake3Source } from './blake3-source';
 
 export const hashExamples: Example[] = [
   {
@@ -46,7 +47,37 @@ def main : IO Unit := do
   IO.println s!"Changed message: {original == changed}"
 `, expected: 'ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad\ne3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\nSame message: true\nChanged message: false',
     concepts: [{ token: 'SHA256.digest "abc"', explanation: 'Returns a 256-bit digest encoded as 64 hexadecimal characters. Running this file downloads no additional library.' }, { token: 'message.toUTF8', explanation: 'Encodes the string as bytes before hashing. Encoding, spaces, and newlines affect the digest.' }, { token: 'UInt32 · ^^^ · &&& · >>>', explanation: 'Unsigned 32-bit words support modular addition, bitwise XOR, bitwise AND, and shifts.' }, { token: 'Digest comparison', explanation: 'A digest can detect a change relative to a trusted reference. Hashing does not encrypt the message or authenticate its sender by itself.' }, { token: 'Implementation scope', explanation: 'This educational implementation is tested against reference digests, including Unicode and multi-block messages. Tests are not a general correctness proof or a security audit.' }],
-    challenge: 'Add a newline to "abc" and compare its digest with the original.', related: ['hashing', 'array-example'],
+    challenge: 'Add a newline to "abc" and compare its digest with the original.', related: ['blake3', 'hashing', 'array-example'],
     references: [{ title: 'NIST Secure Hash Standard (FIPS 180-4)', url: 'https://csrc.nist.gov/pubs/fips/180-4/upd1/final' }],
+  },
+  {
+    id: 'blake3', title: 'BLAKE3 without extra libraries', file: 'BLAKE3.lean', category: 'Cryptography', mode: 'program',
+    description: 'Compute BLAKE3 digests with a self-contained implementation of its compression function and chunk tree.',
+    code: `${blake3Source}
+-- Basic usage: change the message passed to BLAKE3.digest.
+def main : IO Unit := do
+  IO.println (BLAKE3.digest "abc")
+  IO.println (BLAKE3.digest "")
+  let original := BLAKE3.digest "abc"
+  let unchanged := BLAKE3.digest "abc"
+  let changed := BLAKE3.digest "abd"
+  IO.println s!"Same message: {original == unchanged}"
+  IO.println s!"Changed message: {original == changed}"
+`, expected: '6437b3ac38465133ffb63b75273a8db548c558465d79db03fd359c6cd5bd9d85\naf1349b9f5f9a1a6a0404dea36dcc9499bcb25c9adc112b7cc9a93cae41f3262\nSame message: true\nChanged message: false',
+    concepts: [
+      { token: 'BLAKE3.digest "abc"', explanation: 'Encodes the string as UTF-8 and returns the default 32-byte BLAKE3 digest as 64 hexadecimal characters. BLAKE3.digestBytes accepts a ByteArray directly. No additional library download is needed.' },
+      { token: 'UInt32 · ^^^ · ||| · >>>', explanation: 'The compression function uses addition modulo 2^32, bitwise XOR and OR, and right rotations built from shifts. Words are read and written in little-endian byte order.' },
+      { token: 'structure Output · { output with … }', explanation: 'Output stores the inputs to a compression call. Structure update syntax copies those fields and changes the counter and flags for the final digest.' },
+      { token: 'Chunks and the tree', explanation: 'BLAKE3 divides input into 1,024-byte chunks. Each chunk processes up to sixteen 64-byte blocks; parent nodes combine pairs of chaining values. A stack tracks completed subtrees, including when the number of chunks is not a power of two.' },
+      { token: 'ROOT flag', explanation: 'A flag distinguishes the final digest from an internal chaining value. Taking an ordinary chaining value as the digest would produce the wrong result.' },
+      { token: 'Implementation scope', explanation: 'This educational version implements unkeyed hashing with a 32-byte output. It runs sequentially and does not expose keyed hashing, key derivation, streaming, or extended output. Official test vectors check its results; they are not a general correctness proof or a security audit.' },
+      { token: 'Digest comparison', explanation: 'BLAKE3 and SHA-256 produce different digests for the same input. Both can detect changes relative to a trusted reference; hashing alone does not encrypt a message or authenticate its sender.' },
+    ],
+    challenge: 'Hash String.ofList (List.replicate 1025 \'a\') to cross a chunk boundary. Then change its length to 1024 and compare the digests.',
+    related: ['sha256', 'hashing', 'array-example'],
+    references: [
+      { title: 'BLAKE3 specification', url: 'https://github.com/BLAKE3-team/BLAKE3-specs/blob/master/blake3.pdf' },
+      { title: 'Official BLAKE3 test vectors', url: 'https://github.com/BLAKE3-team/BLAKE3/blob/6aab490a26124663329dfd3961b8469f8fdb158b/test_vectors/test_vectors.json' },
+    ],
   },
 ];

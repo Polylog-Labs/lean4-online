@@ -17,6 +17,10 @@ another program has run. This is not a mathematical counterexample or a Lean
 type error. A native Safari/iPhone check is still required; emulation is not a
 physical-device test.
 
+On 2026-09-14, the new BLAKE3 example also exceeded this WebKit build's stack
+limit in a fresh worker. It carries the same Safari notice and Run locally option
+as SHA-256. The example and its reference vectors pass in Chromium and Node WASM.
+
 ## Safari behavior
 
 A normal mobile visit opens Welcome.lean. Saved files remain available; explicit
@@ -58,7 +62,7 @@ heuristic used for guidance and runtime lifecycle choices, never for denying acc
 ## Checks and reproduction
 
 - `npm run test:lean` checks all examples, syntax snippets, lesson solutions,
-  unfinished starters, and SHA-256 vectors in Node's WASM runtime. It also runs
+  unfinished starters, and SHA-256/BLAKE3 vectors in Node's WASM runtime. It also runs
   native programs when Lean is installed.
 - `npm run test:browser-runtime` checks every example and its output in Chromium.
 - `npm run test:editor-webkit` checks desktop and mobile editor behavior, repeated

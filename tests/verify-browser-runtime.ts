@@ -7,6 +7,7 @@ import type { Monaco } from '@monaco-editor/react';
 import type { editor } from 'monaco-editor';
 import type { DownloadProgress } from '../runtime/config';
 import { hashVectorCode, hashDigests } from './hash-vectors';
+import { blake3VectorCode, blake3Digests } from './blake3-vectors';
 
 const chrome = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
 const browser = process.argv.includes('--webkit')
@@ -31,7 +32,7 @@ try {
   assert.ok(!editorCode.includes('DOMPurify 3.4.8'), 'Do not serve Monaco’s embedded old sanitizer');
   console.log('PASS editor API: Lean model initialized and patched sanitizer served.');
   // Exercise the real browser worker protocol, without driving or inspecting UI.
-  const cases = [...examples.map(example => sourceForRun(example.code, example.mode)), hashVectorCode, 'example : 2 + 2 = 5 := by rfl'];
+  const cases = [...examples.map(example => sourceForRun(example.code, example.mode)), hashVectorCode, blake3VectorCode, 'example : 2 + 2 = 5 := by rfl'];
   async function exercise(cases: string[]) { return page.evaluate(async ({ codes, workerURL }) => {
     if (!crossOriginIsolated) throw new Error('COOP/COEP isolation is missing.');
     return new Promise<{ results: { success: boolean; elapsed: number; lines: OutputLine[] }[]; downloads: DownloadProgress[]; downloading: boolean[]; memory: number[] }>((resolve, reject) => {
@@ -67,6 +68,10 @@ try {
   const hashes = parsed[examples.length];
   assert.ok(hashes.success && !hashes.incomplete, `Browser SHA-256: ${JSON.stringify(hashes)}`);
   assert.equal(hashes.output.map(line => line.text.trim()).join('\n').trim(), hashDigests.join('\n'), 'Browser SHA-256 reference vectors');
+  const blake3 = parsed[examples.length + 1];
+  assert.ok(blake3.success && !blake3.incomplete, `Browser BLAKE3: ${JSON.stringify(blake3)}`);
+  assert.equal(blake3.output.map(line => line.text.trim()).join('\n').trim(), blake3Digests.join('\n'), 'Browser BLAKE3 reference vectors');
+  console.log(`PASS browser hash vectors: ${hashDigests.length} SHA-256 and ${blake3Digests.length} BLAKE3.`);
   for (const [index, example] of examples.entries()) {
     const result = parsed[index];
     assert.ok(result.success, `${example.id}: ${JSON.stringify(result)}`);
@@ -117,6 +122,9 @@ try {
   assert.ok(await reading.evaluate(() => document.documentElement.scrollHeight > innerHeight && getComputedStyle(document.body).overflowY !== 'hidden'), 'Reading pages scroll on mobile without JavaScript');
   await reading.goto(`${origin}/examples/sha256`);
   await expect(reading.locator('article')).toContainText('def digest (message : String)');
+  await reading.goto(`${origin}/examples/blake3`);
+  await expect(reading.locator('article')).toContainText('def digestBytes (input : ByteArray)');
+  await expect(reading.locator('article')).toContainText('BLAKE3 specification');
   assert.ok(!readingRequests.some(url => /\/editor\/|\.pack|lean-worker/.test(url)), 'Reading pages do not preload the editor or compiler');
   for (const path of ['/llms.txt', '/agent.txt', '/agents.txt', '/llms-full.txt']) {
     const response = await reading.request.get(`${origin}${path}`);
@@ -138,6 +146,29 @@ try {
   await page.getByRole('link', { name: 'Open exercise in editor' }).click();
   await expect(page.locator('.guide-panel h2')).toHaveText('Prove 2 + 2 = 4');
   console.log('PASS public content: no-JavaScript examples/lessons, mobile scrolling, agent text, sitemap, 404s, and links into the editor.');
+  await page.getByRole('button', { name: 'Settings', exact: true }).click();
+  const settings = page.locator('dialog[open]');
+  // Control clipboard results so CI covers both success and denied permission.
+  await page.evaluate(() => {
+    Object.defineProperty(navigator, 'clipboard', { configurable: true, value: {
+      writeText: async (text: string) => { document.documentElement.dataset.copiedText = text; },
+    } });
+  });
+  const copyAddress = settings.getByRole('button', { name: 'Copy Zcash address', exact: true });
+  await copyAddress.click();
+  await expect(settings.getByRole('button', { name: 'Copied to clipboard', exact: true })).toBeVisible();
+  assert.equal(await page.locator('html').getAttribute('data-copied-text'), await settings.getByLabel('Zcash (ZEC) donation address').inputValue());
+  await expect(copyAddress).toBeEnabled({ timeout: 5000 });
+  await page.evaluate(() => {
+    Object.defineProperty(navigator, 'clipboard', { configurable: true, value: {
+      writeText: async () => { throw new DOMException('Permission denied', 'NotAllowedError'); },
+    } });
+  });
+  await copyAddress.click();
+  await expect(settings.getByRole('alert')).toContainText('Could not copy.');
+  await expect(settings.getByRole('button', { name: 'Copied to clipboard', exact: true })).toHaveCount(0);
+  await settings.getByRole('button', { name: 'Close dialog', exact: true }).click();
+  console.log('PASS donation copy: in-dialog confirmation, exact address, reset, and clipboard-denied feedback.');
   if (!process.argv.includes('--webkit')) {
     const mobile = await browser.newPage({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
     await mobile.goto(origin);

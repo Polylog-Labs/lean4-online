@@ -278,10 +278,12 @@ try {
   await expect(mobile.locator('.code-area')).toHaveCSS('opacity', '1');
   await expect(mobile.locator('.lean-keyword').first()).toHaveCSS('color', 'rgb(196, 164, 237)');
   await expect(mobile.getByRole('navigation', { name: 'Workspace panels' }).getByRole('button', { name: 'Code', exact: true })).toHaveAttribute('aria-pressed', 'true');
-  await mobile.goto(new URL('/examples/sha256', url).href);
-  await mobile.getByRole('link', { name: 'Open SHA256.lean in editor' }).click();
   const mobileNotice = mobile.getByRole('note', { name: 'Safari compatibility' });
-  await expect(mobileNotice).toBeVisible();
+  for (const [id, file] of [['sha256', 'SHA256.lean'], ['blake3', 'BLAKE3.lean']]) {
+    await mobile.goto(new URL(`/examples/${id}`, url).href);
+    await mobile.getByRole('link', { name: `Open ${file} in editor` }).click();
+    await expect(mobileNotice).toBeVisible();
+  }
   await mobile.setViewportSize({ width: 320, height: 568 });
   await expect(mobile.getByRole('note', { name: 'Lean compiler download' })).toContainText('WebAssembly');
   await mobile.getByRole('button', { name: 'Dismiss compiler information' }).click();

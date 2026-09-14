@@ -7,7 +7,7 @@ export const safariLimitedExamples = new Set([
   'cayley-hamilton', 'subsets', 'bridges', 'combinations', 'bezout', 'cantor',
   'geometric-series', 'arithmetic-series', 'euclidean-gcd', 'induction-principle',
   'sum-squares', 'cauchy-schwarz', 'factor-remainder', 'cramer', 'quadratic',
-  'rings', 'gf5', 'gf4', 'diffie-hellman', 'rsa', 'hashing', 'sha256',
+  'rings', 'gf5', 'gf4', 'diffie-hellman', 'rsa', 'hashing', 'sha256', 'blake3',
   'tail-recursion', 'notation', 'proof-efficiency-slow',
 ]);
 

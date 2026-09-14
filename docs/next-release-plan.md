@@ -1,6 +1,6 @@
 # Verification and advanced mathematics: implementation plan
 
-Status: proposed next work. The collection now contains 60 examples, 17 lessons, and 85 syntax entries, including early Curry–Howard lessons, hashing, SHA-256, simp, sorry, and efficiency. The verification projects below are not yet implemented.
+Status: proposed next work. The collection now contains 61 examples, 17 lessons, and 85 syntax entries, including early Curry–Howard lessons, hashing, SHA-256, BLAKE3, simp, sorry, and efficiency. The verification projects below are not yet implemented.
 
 ## Release constraints
 
