@@ -27,8 +27,8 @@ export const examples: Example[] = [
   {
     id: 'hello', title: 'Hello, world', file: 'Hello.lean', category: 'Getting started', mode: 'program',
     description: 'Define a function and print its result from main.',
-    code: `-- Define a greeting function and run it from main.\n\ndef greet (name : String) : String :=\n  s!"Hello, {name}!"\n\ndef main : IO Unit := do\n  IO.println (greet "world")\n  IO.println "Welcome to Lean Lab."\n`,
-    expected: 'Hello, world!\nWelcome to Lean Lab.',
+    code: `-- Define a greeting function and run it from main.\n\ndef greet (name : String) : String :=\n  s!"Hello, {name}!"\n\ndef main : IO Unit := do\n  IO.println (greet "world")\n  IO.println "Welcome to leanlab."\n`,
+    expected: 'Hello, world!\nWelcome to leanlab.',
     concepts: [
       { token: 'def', explanation: 'Introduces a definition. Here, greet is a function and main is the program’s entry point.' },
       { token: '(name : String)', explanation: 'A parameter and its type. This function accepts a string named name.' },

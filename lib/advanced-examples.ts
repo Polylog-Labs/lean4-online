@@ -19,7 +19,7 @@ theorem length_of_copies : (List.replicate 20 7).length = 20 := by
 -- The kernel must check the resulting proof as well.
 -- A higher heartbeat limit allows more work; it does not make it faster.
 `, expected: checked,
-    concepts: [{ token: 'by decide', explanation: 'Proves this closed proposition through computation. The decision procedure computes the list length; a general lemma avoids that calculation.' }, { token: 'Browser limits', explanation: 'This example keeps the list short because browser call stacks are limited. Raising Lean’s maxRecDepth or maxHeartbeats cannot enlarge the browser’s stack.' }, { token: 'Elapsed time', explanation: 'Output reports the whole check, including elaboration and kernel checking. Compare repeated warm runs on the same device; this is not an isolated kernel benchmark.' }],
+    concepts: [{ token: 'by decide', explanation: 'Proves this closed proposition through computation. The decision procedure computes the list length; a general lemma avoids that calculation.' }, { token: 'Browser limits', explanation: 'This example keeps the list short because browser call stacks are limited. Raising Lean’s maxRecDepth or maxHeartbeats cannot enlarge the browser’s stack.' }, { token: 'Elapsed time', explanation: 'Output reports the whole check, including elaboration and kernel checking. Compare repeated runs on the same device; this is not an isolated kernel benchmark.' }],
     challenge: 'Open the companion example and compare the two checks. Try a smaller list in both files.', related: ['proof-efficiency-fast'],
     references: [{ title: 'Lean tactic reference: decide', url: 'https://lean-lang.org/doc/reference/latest/Tactic-Proofs/Tactic-Reference/' }],
   },

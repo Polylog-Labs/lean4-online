@@ -14,9 +14,9 @@ const entries: Entry[] = [
     milestone: 'c. 500 BCE · Pythagorean tradition',
     fact: 'The familiar 3–4–5 triangle is one exact integer example.',
     scopeLabel: 'Algebraic proof', scope: 'Proves the square-area identity used in a rearrangement proof, and the 3–4–5 case. The geometric dissection itself is not formalized.',
-    description: 'See how the area of a big square encodes a² + b² = c², then check an exact right-triangle example.',
+    description: 'Relate a square-area identity to a² + b² = c², then check an exact right-triangle example.',
     body: `-- A square of side a+b, minus four triangles of area a*b/2.
--- Writing twice the total area avoids fractions.
+-- The four triangle areas add to 2*a*b, so no fractions remain.
 theorem rearrangement (a b : Int) :
     (a + b)^2 - 2*a*b = a^2 + b^2 := by
   grind
@@ -40,7 +40,7 @@ theorem euler_mod_ten :
   decide
 
 #eval (7 : Fin 10)^4`, expected: '1',
-    challenge: 'Try modulus 12, which also has four invertible residues. Change both occurrences of 10.',
+    challenge: 'Try modulus 12, which also has four invertible residues. Update the modulus in the theorem and the #eval command.',
   },
   {
     id: 'four-squares', title: 'Four squares: find a witness', file: 'FourSquares.lean', top100: 19, category: 'Number theory',
@@ -70,7 +70,7 @@ def main : IO Unit := do
     id: 'pythagorean-triples', title: 'Generate Pythagorean triples', file: 'PythagoreanTriples.lean', top100: 23,
     milestone: 'c. 300 BCE · Euclid', fact: 'Choosing m=2 and n=1 produces the triple 3, 4, 5.',
     scopeLabel: 'General identity', scope: 'Proves that Euclid’s formula satisfies the equation for all integer parameters. Classification and primitiveness of triples are not claimed.',
-    description: 'Prove the generator once for arbitrary integers, then run it to produce infinitely many parameterized solutions.',
+    description: 'Prove Euclid’s identity for arbitrary integer parameters, then generate several Pythagorean triples.',
     body: `theorem triple_identity (m n : Int) :
     (m^2-n^2)^2 + (2*m*n)^2 = (m^2+n^2)^2 := by
   grind
@@ -159,6 +159,11 @@ example : (factorial 7 + 1) % 8 ≠ 0 := by decide
   },
   {
     id: 'subsets', title: 'Count subsets with bit strings', file: 'Subsets.lean', top100: 52, category: 'Counting & logic',
+    concepts: [
+      { token: 'List Bool', explanation: 'A list of Boolean values records whether each element belongs to a subset. patterns n generates the membership patterns for n elements.' },
+      { token: 'induction n with', explanation: 'Proves the count for zero elements, then uses the count for n elements to prove the count for n + 1.' },
+      { token: 'simp only · omega', explanation: 'The listed lemmas reduce list lengths and expand the power. omega finishes the remaining arithmetic equality.' },
+    ],
     milestone: 'First discovery date unknown', fact: 'A subset is encoded by one yes/no choice for each element.',
     scopeLabel: 'General counting identity', scope: 'Proves the length of the generated n-bit membership patterns is 2^n. The separate bijection to abstract finite sets is explained, not formalized.',
     description: 'Build every binary membership pattern and prove its count by induction.',
@@ -335,6 +340,11 @@ example : divisorSum 28 = 28 := by decide
   },
   {
     id: 'induction-principle', title: 'The induction principle', file: 'InductionPrinciple.lean', top100: 74, category: 'Counting & logic',
+    concepts: [
+      { token: 'P : Nat → Prop', explanation: 'A predicate assigns a proposition to each natural number. The theorem proves P n for every n from its base and successor cases.' },
+      { token: 'base · step', explanation: 'base proves P 0. step takes a natural number n and a proof of P n, then produces a proof of P (n + 1).' },
+      { token: 'induction n with · ih', explanation: 'Splits the proof into zero and successor cases. In the successor case, ih proves P n, so step n ih proves the next case.' },
+    ],
     milestone: '1321 · Levi ben Gerson milestone', fact: 'The step proves an implication for every n, rather than checking a long finite list.',
     scopeLabel: 'General theorem', scope: 'Proves natural-number induction for every predicate P using Lean’s inductive eliminator.',
     description: 'State the principle itself as a theorem, with a base case and a step supplied as arguments.',
@@ -607,6 +617,7 @@ export const mathExamples: Example[] = entries.map(entry => {
   const source = entry.source ?? listSource;
   const sourceTitle = entry.sourceTitle ?? 'Historical Top 100 list (reproduced by Lurch)';
   const heading = entry.top100 ? `Top 100 #${entry.top100}: ${entry.title}` : entry.title;
+  const usesFin = /\bFin\b/.test(entry.body);
   return {
     id: entry.id, title: entry.title, file: entry.file,
     category: entry.category ?? 'Classic mathematics', mode: entry.mode ?? 'check',
@@ -616,8 +627,8 @@ export const mathExamples: Example[] = entries.map(entry => {
     expected: entry.expected ?? 'File checked successfully.', challenge: entry.challenge,
     concepts: entry.concepts ?? [
       { token: 'theorem / example', explanation: 'A named theorem or anonymous example states exactly the claim Lean must check. Read its inputs and assumptions to see the scope.' },
-      { token: entry.body.includes('grind') ? 'grind' : 'decide', explanation: entry.body.includes('grind') ? 'Combines logical reasoning and polynomial normalization to construct a proof term that Lean checks.' : 'Builds a proof using a decision procedure. Quantifying over Fin n checks every one of its finitely many values.' },
-      { token: entry.body.includes('Int') ? 'Int' : 'Nat / Fin n', explanation: entry.body.includes('Int') ? 'Exact integers, including negatives. Unlike Nat subtraction, integer subtraction does not truncate at zero.' : 'Nat is an arbitrary-size natural number. Fin n contains exactly the natural numbers less than n, with arithmetic modulo n.' },
+      { token: entry.body.includes('grind') ? 'grind' : 'decide', explanation: entry.body.includes('grind') ? 'Combines logical reasoning and polynomial normalization to construct a proof term that Lean checks.' : usesFin ? 'Builds a proof using a decision procedure. Quantifying over Fin n checks every one of its finitely many values.' : 'Builds a proof using a decision procedure. Here it checks a concrete arithmetic statement.' },
+      { token: entry.body.includes('Int') ? 'Int' : usesFin ? 'Fin n' : 'Nat', explanation: entry.body.includes('Int') ? 'Exact integers, including negatives. Unlike Nat subtraction, integer subtraction does not truncate at zero.' : usesFin ? 'Fin n contains the natural numbers less than n, each with a bound proof. Addition and multiplication wrap modulo n.' : 'Nat contains arbitrary-size natural numbers, including zero. Its subtraction stops at zero.' },
     ],
     history: { top100: entry.top100, milestone: entry.milestone, fact: entry.fact, scope: entry.scope, scopeLabel: entry.scopeLabel, source, sourceTitle },
   };
