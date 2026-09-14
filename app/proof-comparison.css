@@ -1,0 +1,35 @@
+.proof-comparison { padding: 16px 20px; border-bottom: 1px solid var(--border); font-size: var(--reading-size, 13px); background: var(--surface); }
+.main-area > .proof-comparison { flex: 0 1 auto; max-height: 48%; overflow-y: auto; min-height: 180px; }
+.proof-comparison-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 12px; }
+.proof-comparison-heading h2 { font-size: 1.2em; font-weight: 550; margin: 0; }
+.proof-comparison-heading p { font-size: .9em; color: var(--muted); margin: 4px 0 0; }
+.proof-comparison-heading label { display: flex; align-items: center; gap: 8px; white-space: nowrap; font-size: .9em; }
+.proof-comparison select { font: inherit; color: var(--text); background: var(--code-bg); border: 1px solid var(--border-strong); border-radius: 5px; padding: 6px 8px; }
+.proof-cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.proof-card, .content-page .proof-card { min-width: 0; padding: 12px; border: 1px solid var(--border); border-radius: 6px; background: var(--code-bg); }
+.proof-card-heading { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.proof-card h3, .content-page .proof-card h3 { font-size: 1em; margin: 0; font-weight: 550; }
+.proof-time { font-size: 1em; color: var(--accent-dark); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.proof-card .proof-code, .content-page .proof-code { padding: 0; border: 0; margin: 12px 0; line-height: 1.7; font-size: .92em; white-space: pre-wrap; overflow-wrap: anywhere; }
+.proof-card p, .content-page .proof-card p { color: var(--muted); font-size: .9em; line-height: 1.6; margin: 6px 0; }
+.proof-card .text-button, .proof-card > a { font-size: .85em; }
+.comparison-actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 12px; }
+.comparison-actions > span { display: inline-flex; align-items: center; gap: 6px; font-size: .85em; color: var(--muted); }
+.comparison-results { margin-top: 10px; font-size: .9em; line-height: 1.7; }
+.comparison-results summary { cursor: pointer; color: var(--accent-dark); }
+.comparison-samples { display: flex; flex-wrap: wrap; gap: 20px; padding: 6px 0; }
+.comparison-results p { margin: 4px 0; }
+.comparison-message, .comparison-notice { margin-top: 12px; line-height: 1.7; color: var(--muted); }
+.comparison-notice { border-left: 2px solid var(--amber); padding-left: 10px; }
+.comparison-notice .text-button { display: inline; font-size: inherit; }
+.comparison-footnote { font-size: .8em; color: var(--soft); line-height: 1.6; margin: 10px 0 0; }
+.proof-comparison .runtime-loading { padding: 10px 0; }
+.content-page .proof-cards { font-size: 14px; margin: 20px 0; }
+@media (max-width: 900px), (pointer: coarse) {
+  .proof-cards { grid-template-columns: 1fr; }
+  .guide-scroll .proof-comparison { padding: 0 0 18px; margin-top: 20px; border-bottom: 1px solid var(--border); font-size: inherit; }
+  .proof-comparison-heading { align-items: flex-start; flex-direction: column; gap: 12px; }
+  .proof-comparison select { font-size: 16px; min-height: 40px; }
+  .proof-card .text-button, .comparison-actions .button { min-height: 40px; }
+  .proof-comparison .comparison-footnote { font-size: .85em; }
+}

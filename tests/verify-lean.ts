@@ -9,6 +9,7 @@ import { fixtureRoot, prepareRuntime } from '../scripts/prepare-runtime';
 import { bootLean } from './wasm-driver';
 import { hashVectorCode, hashDigests } from './hash-vectors';
 import { blake3VectorCode, blake3Digests } from './blake3-vectors';
+import { lengthProof, proofSizes } from '../lib/proof-comparison';
 
 await prepareRuntime();
 console.log('Booting the actual Lean WASM compiler…');
@@ -31,6 +32,12 @@ const blake3 = run(blake3VectorCode);
 assert.ok(blake3.success && !blake3.incomplete, `BLAKE3 vectors: ${JSON.stringify(blake3)}`);
 assert.equal(blake3.output.map(line => line.text.trim()).join('\n').trim(), blake3Digests.join('\n'), 'BLAKE3 reference vectors');
 console.log(`PASS BLAKE3: ${blake3Digests.length} reference vectors`); count += blake3Digests.length;
+for (const size of proofSizes) for (const kind of ['calculate', 'reuse'] as const) {
+  const result = run(lengthProof(size, kind));
+  assert.ok(result.success && !result.incomplete, `${kind} at ${size}: ${JSON.stringify(result)}`);
+  count++;
+}
+console.log('PASS proof comparison: both variants at 20, 50, and 100 copies');
 for (const item of syntax) {
   const result = run(item.code);
   assert.ok(result.success, `${item.title} syntax: ${JSON.stringify(result)}`);

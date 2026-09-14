@@ -133,6 +133,7 @@ export const trackDescriptions: Record<typeof lessonTracks[number], string> = {
 export interface Lesson {
   id: string; title: string; description: string; duration: string; track: typeof lessonTracks[number]; mode?: ExecutionMode;
   exampleId: string; paragraphs: string[]; task: string; starter: string; solution: string; validation: string; hint: string;
+  comparison?: 'list-length';
 }
 export const lessons: Lesson[] = [
   ...introductoryLessons,

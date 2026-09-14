@@ -14,6 +14,9 @@ import { compilerDownloadLabel, compilerTransferSummary } from '../lib/runtime-p
 import { RuntimeError } from './runtime-error';
 import { RuntimeLoading } from './runtime-loading';
 import { CopyButton } from './copy-button';
+import { ProofComparison } from './proof-comparison';
+import { useProofComparison } from '../lib/use-proof-comparison';
+import { lengthProof, proofVariants, type ProofKind } from '../lib/proof-comparison';
 import { SafariBadge, SafariFilter, SafariNotice } from './browser-compatibility';
 import { safariLimitedExamples, safariLimitedLessons, usesWebKit } from '../lib/browser-compatibility';
 import { Guide, LearnPage, SyntaxPage } from './learning';
@@ -78,9 +81,7 @@ export default function Workspace() {
   const searchRef = useRef<HTMLInputElement>(null);
   const dialogRef = useRef<HTMLDialogElement>(null);
   const runLock = useRef(false);
-  const lean = useLean(editorReady);
   const filterSafari = safari && hideSafariLimited;
-  const executeLean = lean.run;
   const active = files.find(file => file.id === activeId) ?? files[0] ?? initialFile;
   const editorVisible = view === 'examples' || view === 'playground' || view === 'lesson';
   const navigationView = view === 'lesson' ? 'learn' : view;
@@ -90,11 +91,15 @@ export default function Workspace() {
   const hasActive = tabs.some(file => file.id === activeId);
   const example = examples.find(example => example.id === active.exampleId);
   const lesson = lessons.find(lesson => lesson.id === active.lessonId);
+  const hasComparison = editorVisible && hasActive && !!lesson?.comparison;
+  const lean = useLean(editorReady && !hasComparison);
+  const executeLean = lean.run;
+  const comparison = useProofComparison(executeLean, lean.stop, runLock, hasComparison && !safari);
   const safariLimited = safari && (lesson ? safariLimitedLessons.has(lesson.id) : !!example && safariLimitedExamples.has(example.id));
   const currentResult = results[active.id];
   const result = currentResult?.result;
   const stale = !!currentResult && currentResult.source !== active.code;
-  const busy = runningId !== null;
+  const busy = runningId !== null || comparison.running;
   const theme = appearance === 'system' ? (systemDark ? 'dark' : 'light') : appearance;
   const notify = useCallback((message: string) => setToast(message), []);
   useEffect(() => {
@@ -216,6 +221,12 @@ export default function Workspace() {
     setActiveId(file.id); setView(file.lessonId ? 'lesson' : file.exampleId ? 'examples' : 'playground');
     setDrawerOpen(false); setMobilePanel('code');
   }
+  function openComparison(kind: ProofKind) {
+    comparison.cancel();
+    const variant = proofVariants.find(item => item.kind === kind)!;
+    openFile({ id: `file-${crypto.randomUUID()}`, title: availableName(variant.file, files), code: lengthProof(comparison.size, kind), mode: 'check' });
+  }
+  function stopExecution() { if (comparison.running) comparison.cancel(); else lean.stop(); }
   function openExample(example: Example) { openFile({ id: example.id, title: example.file, code: example.code, mode: example.mode, exampleId: example.id }); }
   function openSyntax(item: SyntaxEntry) {
     openFile({ id: `file-${crypto.randomUUID()}`, title: availableName(`${item.title.replace(/[^a-zA-Z0-9]/g, '')}.lean`, files), code: `-- ${item.title}\n-- ${item.explanation}\n\n${item.code}\n`, mode: 'check' });
@@ -299,6 +310,8 @@ export default function Workspace() {
   const availableLessons = lessons.filter(lesson => !filterSafari || !safariLimitedLessons.has(lesson.id));
   const visibleExamples = examples.filter(example => (!filterSafari || !safariLimitedExamples.has(example.id)) && `${example.title} ${example.description} ${example.category}`.toLowerCase().includes(search.toLowerCase()));
 
+  const comparisonPanel = hasComparison ? <ProofComparison comparison={comparison} safari={safari} busy={busy} download={lean.download} preparing={lean.state === 'loading'} onOpen={openComparison} onRunLocally={() => { openComparison('calculate'); setGuideTab('run'); setGuideOpen(true); }} /> : null;
+
   return <div ref={shellRef} data-hydrated={hydrated} data-panel={mobilePanel} style={{ '--sidebar-width': `${layout.sidebarWidth}px`, '--guide-width': `${layout.guideWidth}px`, '--reading-size': `${layout.fontSize}px` } as CSSProperties} className={`app-shell ${sidebarOpen ? '' : 'sidebar-collapsed'} ${guideOpen ? '' : 'guide-collapsed'} ${consoleOpen ? '' : 'console-collapsed'} ${drawerOpen ? 'drawer-open' : ''}`}>
     <header className="topbar"><button ref={menuRef} className="icon-button navigation-toggle" aria-label="Open navigation" aria-expanded={mobile ? drawerOpen : sidebarOpen} onClick={() => setSidebarOpen(mobile ? !drawerOpen : !sidebarOpen)}><Menu size={18} /></button>
       <button className="brand" onClick={() => changeView('examples')} aria-label="Lean Lab examples"><span className="brand-mark">λ</span><span>lean<span className="brand-lab">lab</span></span></button>
@@ -327,9 +340,10 @@ export default function Workspace() {
       {sidebarOpen && <ResizeHandle label="Resize explorer" value={layout.sidebarWidth} min={180} max={360} onChange={sidebarWidth => updateLayout({ sidebarWidth })} />}
       <main className={`main-area view-${view}`} inert={mobile && drawerOpen}>
         <div className={`workspace-heading ${editorVisible ? 'editor-heading' : ''}`}><div className="workspace-title"><button className="icon-button sidebar-toggle" aria-label="Toggle sidebar" onClick={() => setSidebarOpen(!sidebarOpen)}><Menu size={18} /></button><div><h1>{viewTitles[view]}</h1></div></div><div className="heading-actions">{editorVisible && hasActive ? <><span className="local-save"><CheckCheck size={14} />{saveState}</span><button className="button button-quiet" onClick={share}><ExternalLink size={14} />Share</button></> : navigationView === 'learn' ? <span className="small-pill"><GraduationCap size={14} />{completed.length} / {lessons.length} lessons</span> : null}</div></div>
+        {!mobile && comparisonPanel}
         {editorVisible && !hasActive ? <div className="workspace-empty"><div className="empty-file-icon"><FileCode2 size={34} /></div><h2>{view === 'playground' ? 'No file open' : 'No file open'}</h2><p>{view === 'playground' ? 'Create a Lean file or reopen one from My files.' : 'Open a file from the sidebar to keep going.'}</p><button className="button button-primary" onClick={() => createFile()}><Plus size={15} />New Lean file</button><button className="text-button" onClick={() => changeView('examples')}>Browse examples <ArrowRight size={13} /></button></div> : editorVisible ? <div className="editor-workspace"><section className="editor-column" aria-label="Editor workspace">
           <EditorToolbar active={active} tabs={tabs} mobile={mobile} busy={busy} guideOpen={guideOpen} guideTab={guideTab} consoleOpen={consoleOpen}
-            onSelect={id => { setActiveId(id); setMobilePanel('code'); }} onClose={closeFile} onCreate={() => createFile()} onRun={mode => void runCurrent(mode)} onStop={lean.stop}
+            onSelect={id => { setActiveId(id); setMobilePanel('code'); }} onClose={closeFile} onCreate={() => createFile()} onRun={mode => void runCurrent(mode)} onStop={stopExecution}
             onGuide={toggleGuide} onOutput={() => updateLayout({ consoleOpen: !consoleOpen })} onShare={share} onRename={() => renameFile(active)} onCopy={() => createFile(active)} onDownload={() => download()} onReset={() => setModal('reset')}
             onMode={mode => setFiles(previous => previous.map(file => file.id === active.id ? { ...file, mode } : file))} />
           {!compilerInfoHidden && <div className="compiler-info" role="note" aria-label="Lean compiler download"><div><strong>Lean runs on your device</strong><p>First use downloads the Lean compiler (~46 MB). It runs as WebAssembly in your browser; your code is not uploaded. The download is cached for later runs.</p></div><button className="icon-button" aria-label="Dismiss compiler information" onClick={() => setCompilerInfoHidden(true)}><X size={15} /></button></div>}
@@ -344,7 +358,7 @@ export default function Workspace() {
             : <div className="empty-console"><Terminal size={25} /><div><strong>No output yet</strong><p>{active.mode === 'program' ? <>Run your program to see its output here. <kbd>⌘ ↵</kbd></> : 'Check this file to see results and diagnostics here.'}</p><span className="first-run-note">First use downloads the Lean compiler (~46 MB). It runs as WebAssembly on your device; your code is not uploaded. The download is cached.</span></div></div>}{runningId !== active.id && result && result.compilerDownload !== undefined && <p className="compiler-transfer-summary" aria-label="Compiler transfer">{compilerTransferSummary(result.compilerDownload)}</p>}</div>
           </section></section>
           {guideOpen && <ResizeHandle label="Resize guide" reverse value={layout.guideWidth} min={240} max={440} onChange={guideWidth => updateLayout({ guideWidth })} />}
-          <Guide safari={safari} availableLessons={availableLessons} tab={guideTab} onTabChange={toggleGuide} key={active.id} file={active} example={example} lesson={lesson} complete={!!lesson && completed.includes(lesson.id)} onClose={() => setGuideOpen(false)} onExample={openExample} onLesson={openLesson} onLearn={() => changeView('learn')} onSyntax={() => changeView('syntax')} onDownload={() => download()} onEdit={editCode} />
+          <Guide comparison={mobile ? comparisonPanel : null} safari={safari} availableLessons={availableLessons} tab={guideTab} onTabChange={toggleGuide} key={active.id} file={active} example={example} lesson={lesson} complete={!!lesson && completed.includes(lesson.id)} onClose={() => setGuideOpen(false)} onExample={openExample} onLesson={openLesson} onLearn={() => changeView('learn')} onSyntax={() => changeView('syntax')} onDownload={() => download()} onEdit={editCode} />
         </div> : view === 'learn'  ? <LearnPage safari={safari} hideSafariLimited={hideSafariLimited} onFilterChange={setHideSafariLimited} availableLessons={availableLessons} completed={completed} search={search} onLesson={openLesson} /> : <SyntaxPage search={search} group={referenceGroup} onOpen={openSyntax} onClear={() => { setSearch(''); setReferenceGroup('All'); }} />}
         {editorVisible && hasActive && <nav className="mobile-panels" aria-label="Workspace panels">{(['code', 'output', 'guide'] as const).map(panel => <button key={panel} aria-pressed={mobilePanel === panel} onClick={() => setMobilePanel(panel)}>{panel === 'code' ? <FileCode2 size={16} /> : panel === 'output' ? <Terminal size={16} /> : <BookOpenText size={16} />}<span>{panel === 'code' ? 'Code' : panel === 'output' ? 'Output' : 'Guide'}</span>{panel === 'output' && !!result?.diagnostics.length && <small>{result.diagnostics.length}</small>}</button>)}</nav>}
       </main>

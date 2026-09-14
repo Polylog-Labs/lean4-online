@@ -1,5 +1,6 @@
 import type { Lesson } from './content';
 import { sha256Source } from './sha256-source';
+import { lengthProof } from './proof-comparison';
 
 export const introductoryLessons: Lesson[] = [
   {
@@ -48,12 +49,12 @@ export const furtherLessons: Lesson[] = [
     hint: 'Only the string on the first line needs changing. Then try "Lean" followed by a newline as a separate experiment.',
   },
   {
-    id: 'proof-efficiency', title: 'Make proof checking faster', description: 'Replace a large calculation with a library theorem.', duration: '8 min', track: 'Advanced Lean', exampleId: 'proof-efficiency-fast',
-    paragraphs: ['The two efficiency examples state the same proposition: a list containing 20 copies of 7 has length 20. The calculation version uses decide, which reduces a decision procedure over that list.', 'The theorem version uses exact List.length_replicate. Lean infers the arguments from the goal and checks the theorem application without constructing the list. Both versions still go through the kernel.', 'Check both examples repeatedly and compare the elapsed time in Output. That value includes elaboration and kernel checking; it is not an isolated kernel measurement. Device speed, imports, and warm-up affect the result.', 'Start optimization by identifying expensive declarations. Reuse lemmas, name intermediate facts with have, and use simp? to find a focused simp only list. Raising maxHeartbeats or maxRecDepth permits more work but does not speed up the proof.'],
-    task: 'Use List.length_replicate to prove the stated length without reducing the list.',
-    starter: 'theorem copies_length : (List.replicate 20 7).length = 20 := by\n  sorry\n',
-    solution: 'theorem copies_length : (List.replicate 20 7).length = 20 := by\n  exact List.length_replicate\n',
-    validation: 'example : (List.replicate 20 7).length = 20 := copies_length',
+    id: 'proof-efficiency', title: 'Make proof checking faster', description: 'Compare two proofs of the same theorem and measure their checking times.', duration: '8 min', track: 'Advanced Lean', exampleId: 'proof-efficiency-fast', comparison: 'list-length',
+    paragraphs: ['Both cards state the same theorem: a list containing n copies of 7 has length n. They use the same name and statement, so each is checked in a separate file. Change List size to update both statements together.', 'decide computes the list’s length while reducing a decision procedure. exact List.length_replicate applies a theorem already proved for every length and element, avoiding that calculation. Lean checks both proofs.', 'Choose Compare both proofs to measure them on your device. The comparison warms up each proof, then alternates five measured checks of each and displays the median. Times include elaboration and kernel checking, but exclude compiler download and initialization. Small timings can vary between runs.', 'The exercise below fixes the length at 100. Replace the missing proof with the theorem application. Comparing the cards does not complete the exercise: use Check to validate your own proof.'],
+    task: 'Replace sorry with a theorem application using List.length_replicate, then check the exercise.',
+    starter: lengthProof(100, 'exercise'),
+    solution: lengthProof(100, 'reuse'),
+    validation: 'example : (List.replicate 100 7).length = 100 := copies_length',
     hint: 'exact List.length_replicate matches the goal. No extra limits are required.',
   },
   {

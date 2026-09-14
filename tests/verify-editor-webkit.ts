@@ -278,6 +278,16 @@ try {
   await expect(mobile.locator('.code-area')).toHaveCSS('opacity', '1');
   await expect(mobile.locator('.lean-keyword').first()).toHaveCSS('color', 'rgb(196, 164, 237)');
   await expect(mobile.getByRole('navigation', { name: 'Workspace panels' }).getByRole('button', { name: 'Code', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  await mobile.goto(new URL('/learn/proof-efficiency', url).href);
+  await mobile.getByRole('link', { name: 'Open exercise in editor' }).click();
+  const proofComparison = mobile.getByRole('region', { name: 'Compare proof checking' });
+  await expect(proofComparison.locator('.proof-card')).toHaveCount(2);
+  await expect(proofComparison).toContainText('Safari’s compiler stack limit');
+  await expect(proofComparison.getByRole('button', { name: 'Compare both proofs', exact: true })).toHaveCount(0);
+  await proofComparison.getByLabel('Comparison list size').selectOption('50');
+  await expect(proofComparison.locator('pre').first()).toContainText('replicate 50 7');
+  await proofComparison.getByRole('button', { name: 'open the calculation to run locally', exact: true }).click();
+  await expect(mobile.getByRole('heading', { name: 'Run Lean locally' })).toBeVisible();
   const mobileNotice = mobile.getByRole('note', { name: 'Safari compatibility' });
   for (const [id, file] of [['sha256', 'SHA256.lean'], ['blake3', 'BLAKE3.lean']]) {
     await mobile.goto(new URL(`/examples/${id}`, url).href);

@@ -1,4 +1,5 @@
 import type { Example } from './content';
+import { lengthProof } from './proof-comparison';
 
 const checked = 'File checked successfully.';
 export const advancedExamples: Example[] = [
@@ -7,15 +8,12 @@ export const advancedExamples: Example[] = [
     description: 'Prove a concrete list length by reducing a decision procedure.',
     code: `-- Compare this file with ReuseLengthTheorem.lean.
 -- Both files prove exactly the same proposition.
--- Check each more than once and compare the elapsed time in Output.
+-- The efficiency lesson compares both files with repeated measurements.
 
--- Keep this input small for browsers with limited call stacks.
-
-theorem length_of_copies : (List.replicate 20 7).length = 20 := by
-  decide
+${lengthProof(100, 'calculate')}
 
 -- decide constructs a proof by reducing the decision procedure.
--- Here that means building and traversing a 20-element list.
+-- Here that means building and traversing a 100-element list.
 -- The kernel must check the resulting proof as well.
 -- A higher heartbeat limit allows more work; it does not make it faster.
 `, expected: checked,
@@ -29,10 +27,9 @@ theorem length_of_copies : (List.replicate 20 7).length = 20 := by
     code: `-- Same proposition as CalculateLength.lean; a different proof.
 -- The library already proves this for every length and element.
 
-theorem length_of_copies : (List.replicate 20 7).length = 20 := by
-  exact List.length_replicate
+${lengthProof(100, 'reuse')}
 
--- Lean instantiates a general theorem instead of computing 20 cells.
+-- Lean instantiates a general theorem instead of computing 100 cells.
 -- The kernel checks this application; no proof is skipped.
 -- No increased recursion or heartbeat limits are needed.
 
@@ -43,7 +40,7 @@ theorem length_of_copies : (List.replicate 20 7).length = 20 := by
 -- * Measure: a shorter proof script is not automatically a faster proof.
 `, expected: checked,
     concepts: [{ token: 'exact List.length_replicate', explanation: 'Lean infers the length and element from the goal. It checks an application of an existing theorem, avoiding reduction of the list.' }, { token: 'simp? · simp only', explanation: 'simp? can suggest a sufficient list of simplification lemmas. An explicit list can reduce search and make a proof more predictable, but measure the result.' }, { token: 'Checking versus execution', explanation: 'This example optimizes proving a statement. Tail recursion and array reuse address a different cost: running a program.' }],
-    challenge: 'Change 20 to 200000. This proof still applies without constructing the list. Avoid making that change in the calculation example on a phone.',
+    challenge: 'Change 100 to 200000 in both places. This theorem application still works without constructing the list. Keep the calculation example small.',
     related: ['proof-efficiency-slow', 'tail-recursion', 'simp-example'],
     references: [{ title: 'Simplification tactics', url: 'https://lean-lang.org/doc/reference/latest/Tactic-Proofs/Tactic-Reference/' }],
   },

@@ -93,8 +93,11 @@ export function useLean(editorReady = false) {
 
   const run = useCallback(async (code: string): Promise<RunResult> => {
     if (pending.current) throw new Error('Another program is already running.');
+    const startedGeneration = generation.current;
     const reuseCompiler = workerReady.current;
     await start();
+    if (generation.current !== startedGeneration) throw new Error('Execution stopped.');
+    if (pending.current) throw new Error('Another program is already running.');
     setState('running'); setProgress('Compiling'); setDownload(null);
     return new Promise((resolve, reject) => {
       const id = ++nextId.current;
@@ -128,5 +131,6 @@ export function useLean(editorReady = false) {
     init.current?.reject(new Error('Workspace closed.'));
     pending.current?.reject(new Error('Workspace closed.'));
   }, [clearTimer]);
-  return { state, progress, download, version, run, stop: () => reset('Stopped. Your code is saved.') };
+  const stop = useCallback(() => reset('Stopped. Your code is saved.'), [reset]);
+  return { state, progress, download, version, run, stop };
 }

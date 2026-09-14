@@ -1,9 +1,11 @@
-# Plan: compare two proofs of the same theorem
+# Compare two proofs of the same theorem
 
-Status: proposed; the tutorial changes below are not implemented yet.
+Status: implemented on 2026-09-14. Both proof cards appear side by side above the
+desktop editor, and stack inside the mobile lesson guide. The shared selector and
+comparison button use the existing Lean worker. The implementation notes below
+record the intended behavior and initial measurements.
 
-The current lesson explains two examples but only links directly to the theorem
-application. Show both proof bodies in the lesson and provide a measured comparison.
+The lesson shows both proof bodies and provides a measured comparison.
 The theorem statement must be identical in both files; only its proof changes.
 
 ## Proof pair
@@ -31,8 +33,8 @@ Keep the existing example IDs and offer links to open either file in the editor.
    only when there is enough space; stack them on mobile and in a narrow guide.
    Label them “Calculate the length” and “Reuse a theorem.”
 2. Add a shared list-length control with bounded presets of 20, 50, and 100.
-   Changing it updates both statements together. Start with 100 after confirming
-   it in Chromium; do not increase recursion or heartbeat limits.
+   Changing it updates both statements together. Start with 100, confirmed
+   in Chromium; do not increase recursion or heartbeat limits.
 3. Add **Compare both proofs**. After compiler initialization, perform one
    unmeasured check of each proof, then five measured checks each, alternating
    their order. Display each median in milliseconds and the observed ratio.

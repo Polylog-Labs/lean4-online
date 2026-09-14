@@ -28,6 +28,7 @@ The WASM heap starts at **64 MiB** and grows as needed, replacing the previous 1
 - A compact header and left navigation: Examples, Playground, Learn, Syntax. Collapsible, searchable example groups.
 - A personal My files directory with program/proof starters, create, rename, download, delete, and independent tabs. Copy any example into Playground; closing a tab retains your file.
 - 17 lessons with editable exercises, hints, solutions, and Lean-checked completion. Incorrect answers and `sorry` placeholders do not complete a lesson.
+- The proof-efficiency lesson compares identical theorem statements with `decide` and `exact List.length_replicate`. Both proofs share a size selector (20, 50, or 100), and checking times are medians of five runs after warm-up. Compiler loading is excluded. Safari shows guidance for its known stack limitation.
 - 85 syntax reference entries with explanations, Unicode input shortcuts, and editable snippets that open in Playground.
 - Run/check/stop, execution timeout, bounded output, and worker recovery.
 - Dark mode by default, with light and system themes in Settings; keyboard shortcuts; resizable explorer, guide, and console with saved layout preferences. Mobile uses a navigation drawer and separate Code, Output, and Guide views.

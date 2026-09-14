@@ -1,3 +1,4 @@
+import { lengthProof, proofVariants } from './proof-comparison';
 import { examples, lessons, syntax } from './content';
 import { siteURL } from './site';
 import { safariLimitedExamples, safariLimitedLessons } from './browser-compatibility';
@@ -90,6 +91,7 @@ export function fullSiteGuide() {
   ].filter(Boolean).join('\n\n')), '## Lessons', ...lessons.map(lesson => [
     `### ${lesson.title} (${lesson.id})`, `Track: ${lesson.track}. Mode: ${lesson.mode ?? 'check'}.`, `${siteURL}/learn/${lesson.id}`,
     ...(safariLimitedLessons.has(lesson.id) ? ['Safari: this exercise has a known compiler stack limitation. Read it here or run it locally.'] : []),
+    ...(lesson.comparison ? proofVariants.map(variant => `${variant.title}: ${variant.explanation}\n${leanBlock(lengthProof(100, variant.kind))}`) : []),
     ...lesson.paragraphs, `Exercise: ${lesson.task}`, 'Starter:', leanBlock(lesson.starter), `Hint: ${lesson.hint}`, 'Solution:', leanBlock(lesson.solution),
   ].join('\n\n')), '## Syntax', ...syntax.map(item => `### ${item.title}\n\n${item.token}\n\n${item.explanation}\n${item.input ? `Input: ${item.input}\n` : ''}${leanBlock(item.code)}`)].join('\n\n');
 }

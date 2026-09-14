@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import "./workspace.css";
 import './content.css';
+import './proof-comparison.css';
 import { siteURL } from '../lib/site';
 import WebAnalytics from '../components/web-analytics';
 

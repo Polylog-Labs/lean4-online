@@ -8,6 +8,7 @@ import type { editor } from 'monaco-editor';
 import type { DownloadProgress } from '../runtime/config';
 import { hashVectorCode, hashDigests } from './hash-vectors';
 import { blake3VectorCode, blake3Digests } from './blake3-vectors';
+import { verifyProofComparison } from './verify-proof-comparison';
 
 const chrome = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
 const browser = process.argv.includes('--webkit')
@@ -170,6 +171,7 @@ try {
   await settings.getByRole('button', { name: 'Close dialog', exact: true }).click();
   console.log('PASS donation copy: in-dialog confirmation, exact address, reset, and clipboard-denied feedback.');
   if (!process.argv.includes('--webkit')) {
+    await verifyProofComparison(browser, origin);
     const mobile = await browser.newPage({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
     await mobile.goto(origin);
     await expect(mobile.getByLabel('Switch file', { exact: true })).toContainText('Welcome.lean');
