@@ -34,16 +34,16 @@ let initialized = false;
 let runId: number | null = null;
 let outputBytes = 0;
 let truncated = false;
-function progress(message: string) { self.postMessage({ type: 'progress', message }); }
+function progress(message: string) { self.postMessage({ type: 'progress', message, downloading: false }); }
 let lastDownloadUpdate = 0;
-function downloadProgress() {
+function downloadProgress(downloading: boolean, force = false) {
   const now = performance.now();
   const loaded = download.received + download.cached;
-  if (loaded > 0 && loaded < download.total && now - lastDownloadUpdate < 100) return;
+  if (!force && loaded > 0 && loaded < download.total && now - lastDownloadUpdate < 100) return;
   lastDownloadUpdate = now;
-  const message = download.received > 0 ? 'Downloading Lean compiler'
+  const message = downloading ? 'Downloading Lean compiler'
     : download.cached > 0 ? 'Loading Lean compiler from device storage' : 'Checking device storage for Lean';
-  self.postMessage({ type: 'progress', message, download: { ...download } });
+  self.postMessage({ type: 'progress', message, downloading, download: { ...download } });
 }
 function output(stream: 'stdout' | 'stderr', text: string) {
   const moduleProgress = /\[DEBUG:PROGRESS\]\s*(\d+)\/(\d+)/.exec(text);
@@ -70,12 +70,14 @@ async function downloadArtifact(artifact: Artifact): Promise<Uint8Array<ArrayBuf
     if (hit) {
       try {
         const data = await readDownload(hit, artifact, () => {});
-        download.cached += data.byteLength; downloadProgress(); return data;
+        download.cached += data.byteLength; downloadProgress(false, true); return data;
       } catch { await cache.delete(cacheKey); }
     }
   } catch { cacheAvailable = false; }
+  downloadProgress(true, true);
   const response = await fetch(url, { credentials: 'omit' });
-  const data = await readDownload(response, artifact, bytes => { download.received += bytes; downloadProgress(); });
+  const data = await readDownload(response, artifact, bytes => { download.received += bytes; downloadProgress(true); });
+  progress('Preparing Lean compiler');
   try { await cache?.put(cacheKey, new Response(data)); } catch { cacheAvailable = false; }
   return data;
 }
@@ -107,7 +109,7 @@ async function initialize() {
   const manifest = await response.json() as RuntimeManifest;
   download.received = 0; download.cached = 0;
   download.total = manifest.wasm.compressedBytes + manifest.packs.reduce((sum, pack) => sum + pack.compressedBytes, 0);
-  downloadProgress();
+  downloadProgress(false, true);
   const packedWasm = await downloadArtifact(manifest.wasm);
   const wasmBinary = await new Response(new Blob([packedWasm]).stream().pipeThrough(new DecompressionStream('gzip'))).arrayBuffer();
   const unpackedHash = Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', wasmBinary)), byte => byte.toString(16).padStart(2, '0')).join('');

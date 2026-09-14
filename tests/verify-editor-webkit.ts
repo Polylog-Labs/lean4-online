@@ -15,6 +15,12 @@ try {
   await page.addInitScript({ content: `
     globalThis.__name = (value) => value;
     window.leanStartup = []; window.leanDownloads = [];
+    window.leanDownloadVisible = false; window.leanCompilingVisible = false;
+    new MutationObserver(() => {
+      if (document.querySelector('.download-status progress')) window.leanDownloadVisible = true;
+      const loading = document.querySelector('.runtime-loading');
+      if (loading?.querySelector('strong')?.textContent === 'Compiling' && loading.querySelector('.spin') && !loading.querySelector('progress')) window.leanCompilingVisible = true;
+    }).observe(document, { childList: true, subtree: true });
     const NativeWorker = window.Worker;
     window.Worker = class extends NativeWorker {
       constructor(url, options) {
@@ -57,6 +63,7 @@ try {
   page.on('request', request => { if (request.url().endsWith('.pack')) packs.push(request.url()); });
   let firstDownloads = 0;
   for (const [index, item] of [...cases, ...cases].entries()) {
+    await page.evaluate('window.leanDownloadVisible = false; window.leanCompilingVisible = false;');
     await page.evaluate(code => {
       const monaco = (window as typeof window & { leanlabMonaco?: Monaco }).leanlabMonaco!;
       monaco.editor.getModels().find((model: editor.ITextModel) => model.getLanguageId() === 'lean4')!.setValue(code);
@@ -66,8 +73,10 @@ try {
     await expect(page.locator('.execution-footer')).toBeVisible({ timeout: 180_000 });
     assert.equal((await page.locator('.actual-output > pre').allTextContents()).join('\n').trim() || 'File checked successfully.', item.expected, item.id);
     assert.equal(await page.evaluate('window.leanStartup.length'), index + 1, 'Every Safari run starts a fresh worker');
+    assert.ok(await page.evaluate('window.leanCompilingVisible'), 'Compiling uses a spinner without a progress bar');
     if (index === 0) { firstDownloads = packs.length; assert.ok(firstDownloads > 0); }
     else {
+      assert.equal(await page.evaluate('window.leanDownloadVisible'), false, 'Cached Safari runs never display download progress');
       assert.equal(packs.length, firstDownloads, 'Later runs reuse cached packs without network requests');
       const download = await page.evaluate<DownloadProgress>('window.leanDownloads.at(-1)');
       assert.equal(download.received, 0);
@@ -188,8 +197,21 @@ try {
   assert.ok(!requests.some(request => /\/editor\/|\.(pack|wasm)(?:\?|$)|\/lean-worker\.js/.test(request)), 'Mobile editing does not download Monaco or start Lean');
   const layout = await mobile.evaluate(() => ({ width: document.documentElement.scrollWidth, viewport: window.innerWidth }));
   assert.ok(layout.width <= layout.viewport, 'Mobile page must not overflow horizontally');
-  await mobile.getByRole('button', { name: 'Run program' }).click();
+  // Hold the first real network request so the download state is observable
+  // even on fast CI machines. No compiler responses or output are mocked.
+  let releaseDownload!: () => void;
+  const downloadGate = new Promise<void>(resolve => { releaseDownload = resolve; });
+  await mobile.route('**/*.pack', async route => { await downloadGate; await route.continue(); });
+  try {
+    await mobile.getByRole('button', { name: 'Run program' }).click();
+    await expect(mobile.locator('.runtime-loading strong')).toHaveText('Downloading Lean compiler');
+    await expect(mobile.locator('.runtime-loading').getByRole('progressbar', { name: 'Lean compiler download' })).toBeVisible();
+    await expect(mobile.locator('.status-download')).toBeVisible();
+    await expect(input).toBeVisible();
+  } finally { releaseDownload(); }
   await expect(mobile.getByRole('tabpanel')).toContainText('Hello from mobile', { timeout: 180_000 });
+  await mobile.unroute('**/*.pack');
+  await expect(mobile.locator('.status-download')).toHaveCount(0);
   await expect(mobile.getByRole('tabpanel')).toContainText('Program evaluated in Lean WebAssembly');
   await expect(input).toBeVisible();
   const sourceBounds = await mobile.locator('.code-area').boundingBox();
@@ -201,6 +223,10 @@ try {
   await input.fill(advancedExamples[0].code);
   await mobile.getByLabel('Run options', { exact: true }).click();
   await mobile.getByRole('button', { name: 'Check file', exact: true }).click();
+  await expect(mobile.locator('.runtime-loading strong')).toHaveText('Compiling');
+  await expect(mobile.locator('.runtime-loading .spin')).toBeVisible();
+  await expect(mobile.getByRole('progressbar', { name: 'Lean compiler download' })).toHaveCount(0);
+  await expect(input).toBeVisible();
   await expect(mobile.locator('.runtime-loading')).toBeHidden({ timeout: 30_000 });
   if (await mobile.locator('.runtime-error').count()) {
     // The pinned runtime can exceed WebKit's stack even on small reductions.

@@ -155,10 +155,10 @@ code { font-size: .92em; }
 .runtime-loading, .runtime-error { display: flex; align-items: flex-start; gap: 13px; color: var(--accent); margin: 4px 0; }
 .runtime-error { color: var(--red); }
 .runtime-loading > div, .runtime-error > div { flex: 1; }
+.runtime-loading > svg { flex-shrink: 0; }
+.runtime-loading > div { min-width: 0; }
 .runtime-loading strong, .runtime-error strong { font-size: 12px; font-weight: 500; }
 .runtime-loading p, .runtime-error p { color: var(--muted); line-height: 1.7; font-size: 11px; margin: 8px 0; }
-.indeterminate-progress { height: 3px; background: var(--accent-soft); border-radius: 2px; overflow: hidden; margin-top: 18px; max-width: 250px; }
-.indeterminate-progress:after { content: ''; display: block; width: 35%; height: 100%; background: var(--accent); animation: progress 1.8s ease-in-out infinite; }
 .download-status { margin-top: 16px; width: min(380px, 100%); }
 .download-status > div { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px; color: var(--muted); font-size: 10px; font-variant-numeric: tabular-nums; }
 .download-status progress { display: block; width: 100%; height: 5px; margin-top: 9px; appearance: none; border: 0; border-radius: 3px; overflow: hidden; background: var(--accent-soft); accent-color: var(--accent); }
@@ -179,7 +179,6 @@ code { font-size: .92em; }
 @media (max-width: 700px) { .status-download { width: 35px; } .statusbar > div:last-child { display: none; } }
 .spin { animation: spin 1s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
-@keyframes progress { from { transform: translateX(-100%); } to { transform: translateX(400%); } }
 .diagnostics { display: flex; flex-direction: column; gap: 15px; }
 .diagnostic { display: flex; gap: 10px; text-align: left; color: var(--red); padding: 0; }
 .diagnostic.warning { color: var(--amber); }

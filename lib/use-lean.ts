@@ -52,7 +52,10 @@ export function useLean(editorReady = false) {
         const message = event.data;
         if (message.type === 'progress') {
           setProgress(message.message);
-          if (message.download) { initializationDownload.current = message.download; setDownload(message.download); }
+          if (message.download) initializationDownload.current = message.download;
+          // Retain totals for the final transfer summary, but show the bar only
+          // while fetching bytes. Cache reads and preparation use a spinner.
+          setDownload(message.downloading ? message.download : null);
         }
         if (message.type === 'ready') {
           if (usesWebKit(navigator.userAgent) && message.cacheName) {
@@ -92,7 +95,7 @@ export function useLean(editorReady = false) {
     if (pending.current) throw new Error('Another program is already running.');
     const reuseCompiler = workerReady.current;
     await start();
-    setState('running'); setProgress('Running your Lean code');
+    setState('running'); setProgress('Compiling'); setDownload(null);
     return new Promise((resolve, reject) => {
       const id = ++nextId.current;
       pending.current = { id, lines: [], compilerDownload: reuseCompiler ? null : initializationDownload.current, resolve, reject };

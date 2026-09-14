@@ -34,10 +34,11 @@ try {
   const cases = [...examples.map(example => sourceForRun(example.code, example.mode)), hashVectorCode, 'example : 2 + 2 = 5 := by rfl'];
   async function exercise(cases: string[]) { return page.evaluate(async ({ codes, workerURL }) => {
     if (!crossOriginIsolated) throw new Error('COOP/COEP isolation is missing.');
-    return new Promise<{ results: { success: boolean; elapsed: number; lines: OutputLine[] }[]; downloads: DownloadProgress[]; memory: number[] }>((resolve, reject) => {
+    return new Promise<{ results: { success: boolean; elapsed: number; lines: OutputLine[] }[]; downloads: DownloadProgress[]; downloading: boolean[]; memory: number[] }>((resolve, reject) => {
       const worker = new Worker(workerURL);
       const results: { success: boolean; elapsed: number; lines: OutputLine[] }[] = [];
       const downloads: DownloadProgress[] = [];
+      const downloading: boolean[] = [];
       const memory: number[] = [];
       let lines: OutputLine[] = [], id = 0;
       const timer = setTimeout(() => { worker.terminate(); reject(new Error('Browser worker timeout.')); }, 180_000);
@@ -47,12 +48,13 @@ try {
         const message = event.data;
         if (message.memoryBytes) memory.push(message.memoryBytes);
         if (message.type === 'progress' && message.download) downloads.push(message.download);
+        if (message.type === 'progress') downloading.push(message.downloading);
         if (message.type === 'error') { cleanup(); reject(new Error(`Case ${id}: ${message.message}`)); }
         if (message.type === 'ready') worker.postMessage({ type: 'run', id, code: codes[id] });
         if (message.type === 'output') lines.push({ text: message.text, stream: message.stream });
         if (message.type === 'result') {
           results.push({ success: message.success, elapsed: message.elapsed, lines }); lines = []; id++;
-          if (id === codes.length) { cleanup(); resolve({ results, downloads, memory }); }
+          if (id === codes.length) { cleanup(); resolve({ results, downloads, downloading, memory }); }
           // Yield between runs: queued runtime callbacks must not close stdio.
           else setTimeout(() => worker.postMessage({ type: 'run', id, code: codes[id] }), 40);
         }
@@ -80,6 +82,8 @@ try {
   assert.equal(last.cached, 0);
   assert.ok(last.total < 46_000_000, 'Compressed runtime data must remain below 46 MB');
   assert.ok(first.downloads.some(progress => progress.received > 0 && progress.received < progress.total), 'Progress must update while downloading');
+  assert.ok(first.downloading.includes(true), 'A cold start reports actual download activity');
+  assert.equal(first.downloading.at(-1), false, 'Downloading ends before the compiler becomes ready');
   for (const [index, progress] of first.downloads.entries()) {
     assert.ok(progress.received + progress.cached <= progress.total);
     if (index) assert.ok(progress.received >= first.downloads[index - 1].received);
@@ -94,6 +98,7 @@ try {
   assert.ok(second.results[0].success);
   assert.equal(second.downloads.at(-1)!.received, 0);
   assert.equal(second.downloads.at(-1)!.cached, last.total);
+  assert.ok(second.downloading.every(active => active === false), 'Cache reads and compilation never report downloading');
   assert.equal(runtimeRequests.length, requestCount, 'A fresh worker reuses the downloaded runtime cache');
   console.log(`PASS download: ${(last.total / 1_000_000).toFixed(1)} MB, live byte progress, and cache reuse without network requests.`);
   console.log(`PASS browser WASM: all ${examples.length} examples and expected outputs, rejected invalid proof, and COOP/COEP headers.`);
