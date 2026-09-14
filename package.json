@@ -29,6 +29,7 @@
     "@codemirror/view": "6.43.11",
     "@lezer/highlight": "1.2.3",
     "@monaco-editor/react": "4.7.0",
+    "@vercel/analytics": "2.0.1",
     "dompurify": "3.4.15",
     "lucide-react": "1.45.0",
     "monaco-editor": "0.56.0",

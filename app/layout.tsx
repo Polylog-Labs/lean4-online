@@ -4,6 +4,7 @@ import "./globals.css";
 import "./workspace.css";
 import './content.css';
 import { siteURL } from '../lib/site';
+import WebAnalytics from '../components/web-analytics';
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -37,6 +38,7 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         {children}
+        <WebAnalytics />
       </body>
     </html>
   );
